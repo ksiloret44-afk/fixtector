@@ -1,0 +1,155 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("user") // user, admin
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  repairs   Repair[]
+  invoices  Invoice[]
+  quotes    Quote[]
+}
+
+model Customer {
+  id          String   @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String?
+  phone       String
+  address     String?
+  city        String?
+  postalCode  String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  repairs     Repair[]
+  invoices    Invoice[]
+  quotes      Quote[]
+
+  @@index([email])
+  @@index([phone])
+}
+
+model Repair {
+  id          String      @id @default(cuid())
+  ticketNumber String     @unique @default(uuid())
+  customerId  String
+  customer    Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  
+  deviceType  String      // smartphone, tablet, laptop, etc.
+  brand       String
+  model       String
+  serialNumber String?
+  issue       String      // description du problème
+  status      String      @default("pending") // pending, in_progress, waiting_parts, completed, cancelled
+  
+  estimatedCost Float?
+  finalCost     Float?
+  estimatedTime String?   // durée estimée
+  
+  notes        String?
+  internalNotes String?   // notes internes
+  
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  completedAt  DateTime?
+
+  quote        Quote?
+  invoice      Invoice?
+  parts        RepairPart[]
+}
+
+model Part {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  brand       String?
+  partNumber  String?
+  category    String   // écran, batterie, clavier, etc.
+  stock       Int      @default(0)
+  unitPrice   Float
+  supplier    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  repairs     RepairPart[]
+
+  @@index([category])
+  @@index([name])
+}
+
+model RepairPart {
+  id        String   @id @default(cuid())
+  repairId  String
+  repair    Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
+  partId    String
+  part      Part     @relation(fields: [partId], references: [id])
+  quantity  Int      @default(1)
+  unitPrice Float
+  createdAt DateTime @default(now())
+}
+
+model Quote {
+  id          String   @id @default(cuid())
+  quoteNumber String   @unique @default(uuid())
+  repairId    String   @unique
+  repair      Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  laborCost   Float
+  partsCost   Float
+  totalCost   Float
+  validUntil  DateTime
+  status      String   @default("pending") // pending, accepted, rejected, expired
+  
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  invoiceNumber String   @unique @default(uuid())
+  repairId      String   @unique
+  repair        Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  
+  laborCost     Float
+  partsCost     Float
+  totalCost     Float
+  taxRate       Float    @default(20.0) // TVA en pourcentage
+  taxAmount     Float
+  finalAmount   Float
+  
+  paymentStatus String   @default("unpaid") // unpaid, paid, partial
+  paymentMethod String?  // cash, card, transfer
+  paidAt        DateTime?
+  
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+

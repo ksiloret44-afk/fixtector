@@ -1,0 +1,207 @@
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import Navigation from './Navigation'
+import {
+  Wrench,
+  Users,
+  DollarSign,
+  TrendingUp,
+  Clock,
+  CheckCircle,
+} from 'lucide-react'
+import Link from 'next/link'
+
+export default async function Dashboard() {
+  const session = await getServerSession(authOptions)
+
+  // Récupérer les statistiques
+  const [
+    totalRepairs,
+    pendingRepairs,
+    completedRepairs,
+    totalCustomers,
+    totalRevenue,
+    thisMonthRevenue,
+  ] = await Promise.all([
+    prisma.repair.count(),
+    prisma.repair.count({ where: { status: 'pending' } }),
+    prisma.repair.count({ where: { status: 'completed' } }),
+    prisma.customer.count(),
+    prisma.invoice.aggregate({
+      _sum: { finalAmount: true },
+      where: { paymentStatus: 'paid' },
+    }),
+    prisma.invoice.aggregate({
+      _sum: { finalAmount: true },
+      where: {
+        paymentStatus: 'paid',
+        createdAt: {
+          gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+        },
+      },
+    }),
+  ])
+
+  const stats = [
+    {
+      name: 'Réparations en attente',
+      value: pendingRepairs,
+      icon: Clock,
+      color: 'text-yellow-600',
+      bgColor: 'bg-yellow-100',
+      href: '/repairs?status=pending',
+    },
+    {
+      name: 'Réparations terminées',
+      value: completedRepairs,
+      icon: CheckCircle,
+      color: 'text-green-600',
+      bgColor: 'bg-green-100',
+      href: '/repairs?status=completed',
+    },
+    {
+      name: 'Total clients',
+      value: totalCustomers,
+      icon: Users,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-100',
+      href: '/customers',
+    },
+    {
+      name: 'Chiffre d\'affaires',
+      value: `${(totalRevenue._sum.finalAmount || 0).toFixed(2)} €`,
+      icon: DollarSign,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-100',
+      href: '/invoices',
+    },
+  ]
+
+  // Récupérer les dernières réparations
+  const recentRepairs = await prisma.repair.findMany({
+    take: 5,
+    orderBy: { createdAt: 'desc' },
+    include: {
+      customer: true,
+    },
+  })
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="px-4 py-6 sm:px-0">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Bienvenue, {session?.user?.name}
+            </h1>
+            <p className="mt-2 text-gray-600">
+              Voici un aperçu de votre activité
+            </p>
+          </div>
+
+          {/* Statistiques */}
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+            {stats.map((stat) => {
+              const Icon = stat.icon
+              return (
+                <Link
+                  key={stat.name}
+                  href={stat.href}
+                  className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
+                >
+                  <div className="p-5">
+                    <div className="flex items-center">
+                      <div className={`flex-shrink-0 ${stat.bgColor} rounded-md p-3`}>
+                        <Icon className={`h-6 w-6 ${stat.color}`} />
+                      </div>
+                      <div className="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt className="text-sm font-medium text-gray-500 truncate">
+                            {stat.name}
+                          </dt>
+                          <dd className="text-lg font-semibold text-gray-900">
+                            {stat.value}
+                          </dd>
+                        </dl>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+
+          {/* Réparations récentes */}
+          <div className="bg-white shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-medium text-gray-900">
+                  Réparations récentes
+                </h2>
+                <Link
+                  href="/repairs"
+                  className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                >
+                  Voir tout
+                </Link>
+              </div>
+              <div className="flow-root">
+                <ul className="-my-5 divide-y divide-gray-200">
+                  {recentRepairs.length === 0 ? (
+                    <li className="py-5">
+                      <p className="text-sm text-gray-500 text-center">
+                        Aucune réparation pour le moment
+                      </p>
+                    </li>
+                  ) : (
+                    recentRepairs.map((repair) => (
+                      <li key={repair.id} className="py-5">
+                        <div className="flex items-center space-x-4">
+                          <div className="flex-shrink-0">
+                            <Wrench className="h-6 w-6 text-gray-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {repair.deviceType} - {repair.brand} {repair.model}
+                            </p>
+                            <p className="text-sm text-gray-500 truncate">
+                              {repair.customer.firstName} {repair.customer.lastName}
+                            </p>
+                          </div>
+                          <div className="flex-shrink-0">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                repair.status === 'completed'
+                                  ? 'bg-green-100 text-green-800'
+                                  : repair.status === 'in_progress'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : repair.status === 'pending'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}
+                            >
+                              {repair.status === 'completed'
+                                ? 'Terminée'
+                                : repair.status === 'in_progress'
+                                ? 'En cours'
+                                : repair.status === 'pending'
+                                ? 'En attente'
+                                : repair.status}
+                            </span>
+                          </div>
+                        </div>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  )
+}
+
