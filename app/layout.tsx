@@ -6,7 +6,7 @@ import Providers from '@/components/Providers'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Weqeep - Gestion de réparations',
+  title: 'RPPHONE - Gestion de réparations',
   description: 'Solution complète pour la gestion de votre activité de réparation',
 }
 

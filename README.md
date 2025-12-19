@@ -1,4 +1,4 @@
-# Weqeep - Solution de gestion pour réparateurs
+# RPPHONE - Solution de gestion pour réparateurs
 
 Application SaaS complète pour la gestion d'une activité de réparation de matériel électronique et multimédia.
 
@@ -77,7 +77,7 @@ npm run dev
 ### Compte par défaut
 
 Si vous avez exécuté `npm run db:init`, vous pouvez vous connecter avec :
-- **Email:** admin@weqeep.com
+- **Email:** admin@rpphone.com
 - **Mot de passe:** admin123
 
 ⚠️ **Important:** Changez ce mot de passe après la première connexion !
@@ -85,7 +85,7 @@ Si vous avez exécuté `npm run db:init`, vous pouvez vous connecter avec :
 ## Structure du projet
 
 ```
-weqeep/
+rpphone/
 ├── app/              # Pages et routes Next.js
 ├── components/       # Composants React réutilisables
 ├── lib/             # Utilitaires et configurations

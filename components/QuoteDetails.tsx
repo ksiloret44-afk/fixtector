@@ -9,9 +9,10 @@ import Link from 'next/link'
 
 interface QuoteDetailsProps {
   quote: any
+  isClient?: boolean // Si true, c'est un client qui consulte
 }
 
-export default function QuoteDetails({ quote }: QuoteDetailsProps) {
+export default function QuoteDetails({ quote, isClient = false }: QuoteDetailsProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
@@ -25,10 +26,26 @@ export default function QuoteDetails({ quote }: QuoteDetailsProps) {
       })
 
       if (response.ok) {
-        router.refresh()
+        const data = await response.json()
+        
+        // Si le devis est accepté et qu'une facture a été créée, rediriger vers la facture
+        if (newStatus === 'accepted' && data.invoice) {
+          // Forcer le rafraîchissement du cache avant la redirection
+          router.refresh()
+          // Utiliser window.location pour forcer un rechargement complet
+          const invoicePath = isClient ? `/client/invoices/${data.invoice.id}` : `/invoices/${data.invoice.id}`
+          window.location.href = invoicePath
+        } else {
+          router.refresh()
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Une erreur est survenue' }))
+        console.error('Erreur API:', errorData)
+        alert(errorData.error || 'Une erreur est survenue lors de l\'acceptation du devis')
       }
     } catch (err) {
       console.error('Erreur:', err)
+      alert('Une erreur est survenue lors de la mise à jour du devis')
     } finally {
       setLoading(false)
     }
@@ -73,7 +90,7 @@ export default function QuoteDetails({ quote }: QuoteDetailsProps) {
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
             >
               <CheckCircle className="h-4 w-4 mr-2" />
-              Accepter
+              {loading ? 'Traitement...' : 'Accepter le devis'}
             </button>
             <button
               onClick={() => updateStatus('rejected')}
@@ -83,6 +100,27 @@ export default function QuoteDetails({ quote }: QuoteDetailsProps) {
               <XCircle className="h-4 w-4 mr-2" />
               Refuser
             </button>
+          </div>
+        )}
+
+        {quote.status === 'accepted' && quote.repair?.invoice && (
+          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-green-800">
+                  ✓ Devis accepté - Facture créée
+                </p>
+                <p className="text-sm text-green-600 mt-1">
+                  La facture a été générée automatiquement
+                </p>
+              </div>
+              <Link
+                href={isClient ? `/client/invoices/${quote.repair.invoice.id}` : `/invoices/${quote.repair.invoice.id}`}
+                className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200"
+              >
+                Voir la facture
+              </Link>
+            </div>
           </div>
         )}
 
@@ -106,17 +144,16 @@ export default function QuoteDetails({ quote }: QuoteDetailsProps) {
           <h3 className="text-lg font-medium text-gray-900 mb-4">Détails</h3>
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Main d'œuvre</span>
-              <span className="text-sm font-medium text-gray-900">{quote.laborCost.toFixed(2)} €</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Pièces détachées</span>
-              <span className="text-sm font-medium text-gray-900">{quote.partsCost.toFixed(2)} €</span>
+              <span className="text-sm text-gray-600">Total HT</span>
+              <span className="text-sm font-medium text-gray-900">{quote.totalCost.toFixed(2)} €</span>
             </div>
             <div className="flex justify-between pt-2 border-t border-gray-200">
-              <span className="text-base font-medium text-gray-900">Total</span>
-              <span className="text-base font-bold text-primary-600">{quote.totalCost.toFixed(2)} €</span>
+              <span className="text-base font-medium text-gray-900">Total TTC</span>
+              <span className="text-base font-bold text-primary-600">{(quote.totalCost * 1.2).toFixed(2)} €</span>
             </div>
+            <p className="text-xs text-gray-500 mt-1">
+              HT: {quote.totalCost.toFixed(2)} € (TVA 20% incluse)
+            </p>
           </div>
         </div>
 
@@ -136,7 +173,7 @@ export default function QuoteDetails({ quote }: QuoteDetailsProps) {
 
         <div className="mt-6 pt-6 border-t border-gray-200">
           <Link
-            href={`/repairs/${quote.repairId}`}
+            href={isClient ? `/client/repairs/${quote.repairId}` : `/repairs/${quote.repairId}`}
             className="text-sm text-primary-600 hover:text-primary-700"
           >
             ← Retour à la réparation

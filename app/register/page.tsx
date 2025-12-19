@@ -46,13 +46,21 @@ export default function RegisterPage() {
 
       if (!response.ok) {
         setError(data.error || 'Une erreur est survenue')
+        setLoading(false)
         return
       }
 
-      router.push('/login?registered=true')
-    } catch (err) {
-      setError('Une erreur est survenue')
-    } finally {
+      // Afficher un message de succès avec information sur l'approbation
+      if (data.requiresApproval) {
+        setError('')
+        alert('Votre compte a été créé avec succès !\n\nVotre compte est en attente d\'approbation par un administrateur. Vous recevrez un email une fois votre compte approuvé.')
+        router.push('/login?pending=true')
+      } else {
+        router.push('/login?registered=true')
+      }
+    } catch (err: any) {
+      console.error('Erreur lors de l\'inscription:', err)
+      setError(err.message || 'Une erreur est survenue lors de la création du compte')
       setLoading(false)
     }
   }
@@ -62,7 +70,7 @@ export default function RegisterPage() {
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary-700 mb-2">Créer un compte</h1>
-          <p className="text-gray-600">Rejoignez Weqeep</p>
+          <p className="text-gray-600">Rejoignez RPPHONE</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

@@ -28,6 +28,7 @@ export default async function QuoteDetailPage({
               part: true,
             },
           },
+          invoice: true,
         },
       },
       customer: true,

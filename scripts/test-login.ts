@@ -11,7 +11,7 @@ const prisma = new PrismaClient()
 async function testLogin() {
   console.log('🧪 Test de connexion complète\n')
 
-  const email = 'admin@weqeep.com'
+  const email = 'admin@rpphone.com'
   const password = 'admin123'
 
   try {

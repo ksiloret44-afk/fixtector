@@ -49,6 +49,12 @@ export const authOptions: NextAuthOptions = {
             return null
           }
 
+          // Vérifier si l'utilisateur est approuvé
+          if (!user.approved) {
+            console.log('User not approved:', credentials.email)
+            return null // Retourner null pour que NextAuth affiche une erreur générique
+          }
+
           return {
             id: user.id,
             email: user.email,

@@ -15,7 +15,12 @@ model User {
   email     String   @unique
   password  String
   name      String
-  role      String   @default("user") // user, admin
+  role      String   @default("user") // user, admin, client
+  approved  Boolean  @default(false) // Approuvé par un admin
+  approvedBy String? // ID de l'admin qui a approuvé
+  approvedAt DateTime?
+  customerId String? @unique // Lien vers le Customer si c'est un client
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -37,6 +42,7 @@ model Customer {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  user        User?    // Lien vers le User si le client a un compte
   repairs     Repair[]
   invoices    Invoice[]
   quotes      Quote[]
@@ -149,6 +155,15 @@ model Invoice {
   paidAt        DateTime?
   
   notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Settings {
+  id            String   @id @default(cuid())
+  key           String   @unique
+  value         String
+  description   String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }

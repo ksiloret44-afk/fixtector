@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { useRouter } from 'next/navigation'
@@ -8,7 +8,7 @@ import {
   Wrench,
   User,
   Calendar,
-  DollarSign,
+  Coins,
   Package,
   FileText,
   Edit,
@@ -19,12 +19,26 @@ import Link from 'next/link'
 
 interface RepairDetailsProps {
   repair: any
+  isClient?: boolean // Si true, masquer les actions d'édition
 }
 
-export default function RepairDetails({ repair }: RepairDetailsProps) {
+export default function RepairDetails({ repair, isClient = false }: RepairDetailsProps) {
   const router = useRouter()
   const [status, setStatus] = useState(repair.status)
   const [loading, setLoading] = useState(false)
+  const [taxRate, setTaxRate] = useState(20.0)
+
+  // Récupérer le taux de TVA depuis les paramètres
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.settings?.taxRate) {
+          setTaxRate(parseFloat(data.settings.taxRate))
+        }
+      })
+      .catch(err => console.error('Erreur:', err))
+  }, [])
 
   const updateStatus = async (newStatus: string) => {
     setLoading(true)
@@ -37,12 +51,74 @@ export default function RepairDetails({ repair }: RepairDetailsProps) {
 
       if (response.ok) {
         setStatus(newStatus)
+        
+        // Si on termine la réparation, créer/régénérer un devis
+        if (newStatus === 'completed') {
+          await createOrRegenerateQuote()
+        }
+        
         router.refresh()
       }
     } catch (err) {
       console.error('Erreur:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const createOrRegenerateQuote = async () => {
+    try {
+      // Vérifier si un devis existe déjà
+      const existingQuote = repair.quote
+      
+      // Si un devis existe, le supprimer d'abord
+      if (existingQuote) {
+        await fetch(`/api/quotes/${existingQuote.id}`, {
+          method: 'DELETE',
+        })
+      }
+
+      // Calculer le coût des pièces
+      const partsCost = repair.parts?.reduce((sum: number, rp: any) => {
+        return sum + (rp.unitPrice * rp.quantity)
+      }, 0) || 0
+
+      // Utiliser le coût final si disponible, sinon le coût estimé
+      const laborCost = repair.finalCost || repair.estimatedCost || 0
+      const totalCost = laborCost + partsCost
+
+      // Date de validité : 30 jours à partir d'aujourd'hui
+      const validUntil = new Date()
+      validUntil.setDate(validUntil.getDate() + 30)
+
+      // Créer le nouveau devis
+      const quoteResponse = await fetch('/api/quotes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          repairId: repair.id,
+          customerId: repair.customerId,
+          userId: repair.userId,
+          laborCost: laborCost,
+          partsCost: partsCost,
+          totalCost: totalCost,
+          validUntil: validUntil.toISOString().split('T')[0],
+          notes: repair.notes || null,
+        }),
+      })
+
+      if (quoteResponse.ok) {
+        const quoteData = await quoteResponse.json()
+        // Rediriger vers le nouveau devis
+        router.push(`/quotes/${quoteData.quote.id}`)
+      } else {
+        const errorData = await quoteResponse.json()
+        console.error('Erreur lors de la création du devis:', errorData)
+        alert('Erreur lors de la création du devis: ' + (errorData.error || 'Une erreur est survenue'))
+      }
+    } catch (err) {
+      console.error('Erreur lors de la création du devis:', err)
+      alert('Erreur lors de la création du devis')
     }
   }
 
@@ -78,49 +154,53 @@ export default function RepairDetails({ repair }: RepairDetailsProps) {
           </div>
           <div className="flex items-center space-x-3">
             {getStatusBadge(status)}
-            <Link
-              href={`/repairs/${repair.id}/edit`}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Modifier
-            </Link>
+            {!isClient && (
+              <Link
+                href={`/repairs/${repair.id}/edit`}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Modifier
+              </Link>
+            )}
           </div>
         </div>
 
-        {/* Actions rapides */}
-        <div className="flex flex-wrap gap-2 mt-4">
-          {status !== 'in_progress' && status !== 'completed' && (
-            <button
-              onClick={() => updateStatus('in_progress')}
-              disabled={loading}
-              className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Démarrer
-            </button>
-          )}
-          {status === 'in_progress' && (
-            <button
-              onClick={() => updateStatus('completed')}
-              disabled={loading}
-              className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Terminer
-            </button>
-          )}
-          {status !== 'cancelled' && (
-            <button
-              onClick={() => updateStatus('cancelled')}
-              disabled={loading}
-              className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
-            >
-              <XCircle className="h-4 w-4 mr-2" />
-              Annuler
-            </button>
-          )}
-        </div>
+        {/* Actions rapides - uniquement pour les admins/users */}
+        {!isClient && (
+          <div className="flex flex-wrap gap-2 mt-4">
+            {status !== 'in_progress' && status !== 'completed' && (
+              <button
+                onClick={() => updateStatus('in_progress')}
+                disabled={loading}
+                className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Démarrer
+              </button>
+            )}
+            {status === 'in_progress' && (
+              <button
+                onClick={() => updateStatus('completed')}
+                disabled={loading}
+                className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Terminer
+              </button>
+            )}
+            {status !== 'cancelled' && (
+              <button
+                onClick={() => updateStatus('cancelled')}
+                disabled={loading}
+                className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
+              >
+                <XCircle className="h-4 w-4 mr-2" />
+                Annuler
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -243,30 +323,52 @@ export default function RepairDetails({ repair }: RepairDetailsProps) {
           {/* Coûts */}
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <DollarSign className="h-5 w-5 mr-2 text-gray-400" />
+              <Coins className="h-5 w-5 mr-2 text-gray-400" />
               Coûts
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {repair.estimatedCost && (
                 <div>
-                  <p className="text-sm text-gray-500">Coût estimé</p>
-                  <p className="text-lg font-semibold text-gray-900">
-                    {repair.estimatedCost.toFixed(2)} €
-                  </p>
+                  <p className="text-sm text-gray-500 mb-2">Coût estimé</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-gray-50 p-2 rounded">
+                      <p className="text-xs text-gray-500 mb-1">HT</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {repair.estimatedCost.toFixed(2)} €
+                      </p>
+                    </div>
+                    <div className="bg-primary-50 p-2 rounded">
+                      <p className="text-xs text-gray-500 mb-1">TTC</p>
+                      <p className="text-sm font-bold text-primary-600">
+                        {taxRate === 0 ? repair.estimatedCost.toFixed(2) : (repair.estimatedCost * (1 + taxRate / 100)).toFixed(2)} €
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
               {repair.finalCost && (
                 <div>
-                  <p className="text-sm text-gray-500">Coût final</p>
-                  <p className="text-lg font-semibold text-primary-600">
-                    {repair.finalCost.toFixed(2)} €
-                  </p>
+                  <p className="text-sm text-gray-500 mb-2">Coût final</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-gray-50 p-2 rounded">
+                      <p className="text-xs text-gray-500 mb-1">HT</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {repair.finalCost.toFixed(2)} €
+                      </p>
+                    </div>
+                    <div className="bg-primary-50 p-2 rounded">
+                      <p className="text-xs text-gray-500 mb-1">TTC</p>
+                      <p className="text-sm font-bold text-primary-600">
+                        {taxRate === 0 ? repair.finalCost.toFixed(2) : (repair.finalCost * (1 + taxRate / 100)).toFixed(2)} €
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
               {repair.estimatedTime && (
                 <div>
-                  <p className="text-sm text-gray-500">Durée estimée</p>
-                  <p className="text-sm text-gray-900">{repair.estimatedTime}</p>
+                  <p className="text-sm text-gray-500 mb-1">Durée estimée</p>
+                  <p className="text-sm font-medium text-gray-900">{repair.estimatedTime}</p>
                 </div>
               )}
             </div>

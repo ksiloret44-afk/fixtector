@@ -10,6 +10,13 @@ export default async function Home() {
     redirect('/login')
   }
 
+  const user = session.user as any
+  
+  // Rediriger les clients vers leur espace dédié
+  if (user.role === 'client') {
+    redirect('/client')
+  }
+
   return <Dashboard />
 }
 

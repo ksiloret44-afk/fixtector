@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface Customer {
@@ -19,6 +19,21 @@ export default function NewRepairForm({ userId }: { userId: string }) {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [showNewCustomer, setShowNewCustomer] = useState(false)
+  const [taxRate, setTaxRate] = useState(20.0)
+  const [priceInputType, setPriceInputType] = useState<'HT' | 'TTC'>('HT')
+  const [priceInput, setPriceInput] = useState('')
+
+  // Récupérer le taux de TVA depuis les paramètres
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.settings?.taxRate) {
+          setTaxRate(parseFloat(data.settings.taxRate))
+        }
+      })
+      .catch(err => console.error('Erreur:', err))
+  }, [])
 
   const [formData, setFormData] = useState({
     // Customer fields
@@ -41,6 +56,24 @@ export default function NewRepairForm({ userId }: { userId: string }) {
     estimatedTime: '',
     notes: '',
   })
+
+  // Calculer HT et TTC selon le type de saisie
+  const priceValue = parseFloat(priceInput) || 0
+  const estimatedCostHT = priceInputType === 'HT' 
+    ? priceValue 
+    : (taxRate === 0 ? priceValue : priceValue / (1 + taxRate / 100))
+  const estimatedCostTTC = priceInputType === 'TTC' 
+    ? priceValue 
+    : (taxRate === 0 ? priceValue : priceValue * (1 + taxRate / 100))
+  const taxAmount = estimatedCostTTC - estimatedCostHT
+
+  // Mettre à jour le coût estimé (en HT) quand le prix change
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      estimatedCost: estimatedCostHT > 0 ? estimatedCostHT.toFixed(2) : '',
+    }))
+  }, [estimatedCostHT])
 
   // Types de réparations par catégorie d'appareil
   const repairTypes: Record<string, string[]> = {
@@ -185,11 +218,18 @@ export default function NewRepairForm({ userId }: { userId: string }) {
     }
 
     try {
-      const response = await fetch(`/api/customers/search?q=${encodeURIComponent(query)}`)
+      const response = await fetch(`/api/customers/search?q=${encodeURIComponent(query.trim())}`)
+      if (!response.ok) {
+        console.error('Erreur HTTP:', response.status)
+        setCustomers([])
+        return
+      }
       const data = await response.json()
-      setCustomers(data)
+      console.log('Clients trouvés:', data) // Debug
+      setCustomers(Array.isArray(data) ? data : [])
     } catch (err) {
       console.error('Erreur lors de la recherche:', err)
+      setCustomers([])
     }
   }
 
@@ -265,7 +305,7 @@ export default function NewRepairForm({ userId }: { userId: string }) {
                       }}
                       className="px-4 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                     >
-                      <div className="font-medium">{customer.firstName} {customer.lastName}</div>
+                      <div className="font-medium text-gray-900">{customer.firstName} {customer.lastName}</div>
                       <div className="text-sm text-gray-500">{customer.phone}</div>
                     </li>
                   ))}
@@ -289,7 +329,7 @@ export default function NewRepairForm({ userId }: { userId: string }) {
           <div className="bg-gray-50 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">{selectedCustomer.firstName} {selectedCustomer.lastName}</p>
+                <p className="font-medium text-gray-900">{selectedCustomer.firstName} {selectedCustomer.lastName}</p>
                 <p className="text-sm text-gray-500">{selectedCustomer.phone}</p>
               </div>
               <button
@@ -501,15 +541,87 @@ export default function NewRepairForm({ userId }: { userId: string }) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Coût estimé (€)
+              Coût estimé
             </label>
-            <input
-              type="number"
-              step="0.01"
-              value={formData.estimatedCost}
-              onChange={(e) => setFormData({ ...formData, estimatedCost: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
-            />
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2 mb-2">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="priceType"
+                    value="HT"
+                    checked={priceInputType === 'HT'}
+                    onChange={(e) => {
+                      // Convertir de TTC à HT si on passe de TTC à HT
+                      if (priceInputType === 'TTC' && priceInput) {
+                        const currentValue = parseFloat(priceInput) || 0
+                        if (taxRate > 0) {
+                          const htValue = currentValue / (1 + taxRate / 100)
+                          setPriceInput(htValue.toFixed(2))
+                        }
+                      }
+                      setPriceInputType('HT')
+                    }}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-700">HT</span>
+                </label>
+                <label className="flex items-center ml-4">
+                  <input
+                    type="radio"
+                    name="priceType"
+                    value="TTC"
+                    checked={priceInputType === 'TTC'}
+                    onChange={(e) => {
+                      // Convertir de HT à TTC si on passe de HT à TTC
+                      if (priceInputType === 'HT' && priceInput) {
+                        const currentValue = parseFloat(priceInput) || 0
+                        if (taxRate > 0) {
+                          const ttcValue = currentValue * (1 + taxRate / 100)
+                          setPriceInput(ttcValue.toFixed(2))
+                        }
+                      }
+                      setPriceInputType('TTC')
+                    }}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-700">TTC</span>
+                </label>
+              </div>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={priceInput}
+                onChange={(e) => setPriceInput(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
+                placeholder="0.00"
+              />
+              <div className="bg-gray-50 p-3 rounded-lg space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">HT:</span>
+                  <span className="font-medium text-gray-900">{estimatedCostHT.toFixed(2)} €</span>
+                </div>
+                {taxRate > 0 && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">TVA ({taxRate}%):</span>
+                      <span className="font-medium text-gray-900">{taxAmount.toFixed(2)} €</span>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t border-gray-200">
+                      <span className="font-semibold text-gray-900">TTC:</span>
+                      <span className="font-bold text-primary-600">{estimatedCostTTC.toFixed(2)} €</span>
+                    </div>
+                  </>
+                )}
+                {taxRate === 0 && (
+                  <div className="flex justify-between pt-1 border-t border-gray-200">
+                    <span className="font-semibold text-gray-900">TTC:</span>
+                    <span className="font-bold text-primary-600">{estimatedCostTTC.toFixed(2)} €</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

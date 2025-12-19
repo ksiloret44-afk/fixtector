@@ -10,7 +10,7 @@ async function testAuth() {
     // 1. Vérifier que l'utilisateur existe
     console.log('1. Vérification de l\'utilisateur...')
     const user = await prisma.user.findUnique({
-      where: { email: 'admin@weqeep.com' }
+      where: { email: 'admin@rpphone.com' }
     })
 
     if (!user) {
@@ -58,7 +58,7 @@ async function testAuth() {
       console.log('✅ Tous les tests sont passés!')
       console.log('   La connexion devrait fonctionner.')
       console.log('\n   Essayez de vous connecter avec:')
-      console.log('   Email: admin@weqeep.com')
+      console.log('   Email: admin@rpphone.com')
       console.log('   Mot de passe: admin123')
     } else {
       console.log('❌ Certains tests ont échoué.')

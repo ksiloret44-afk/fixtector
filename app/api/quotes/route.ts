@@ -23,15 +23,16 @@ export async function POST(request: Request) {
     } = body
 
     // Vérifier que la réparation n'a pas déjà un devis
+    // Si un devis existe, on le supprime pour le remplacer (régénération)
     const existingQuote = await prisma.quote.findUnique({
       where: { repairId },
     })
 
     if (existingQuote) {
-      return NextResponse.json(
-        { error: 'Cette réparation a déjà un devis' },
-        { status: 400 }
-      )
+      // Supprimer l'ancien devis pour le remplacer
+      await prisma.quote.delete({
+        where: { id: existingQuote.id },
+      })
     }
 
     const quote = await prisma.quote.create({

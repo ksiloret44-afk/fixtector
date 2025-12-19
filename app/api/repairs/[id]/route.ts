@@ -14,12 +14,32 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { status, finalCost, internalNotes } = body
+    const { 
+      status, 
+      finalCost, 
+      internalNotes,
+      deviceType,
+      brand,
+      model,
+      serialNumber,
+      issue,
+      estimatedCost,
+      estimatedTime,
+      notes,
+    } = body
 
     const updateData: any = {}
     if (status) updateData.status = status
-    if (finalCost !== undefined) updateData.finalCost = parseFloat(finalCost)
-    if (internalNotes !== undefined) updateData.internalNotes = internalNotes
+    if (deviceType) updateData.deviceType = deviceType
+    if (brand) updateData.brand = brand
+    if (model) updateData.model = model
+    if (serialNumber !== undefined) updateData.serialNumber = serialNumber || null
+    if (issue) updateData.issue = issue
+    if (finalCost !== undefined) updateData.finalCost = finalCost ? parseFloat(finalCost) : null
+    if (estimatedCost !== undefined) updateData.estimatedCost = estimatedCost ? parseFloat(estimatedCost) : null
+    if (estimatedTime !== undefined) updateData.estimatedTime = estimatedTime || null
+    if (notes !== undefined) updateData.notes = notes || null
+    if (internalNotes !== undefined) updateData.internalNotes = internalNotes || null
     if (status === 'completed') {
       updateData.completedAt = new Date()
     }

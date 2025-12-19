@@ -2,32 +2,44 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { signOut } from 'next-auth/react'
+import { signOut, useSession } from 'next-auth/react'
 import {
   LayoutDashboard,
   Wrench,
   Users,
   Package,
   FileText,
+  Receipt,
   LogOut,
   Menu,
   X,
   User,
   Settings,
+  Shield,
 } from 'lucide-react'
 import { useState } from 'react'
 
 export default function Navigation() {
   const pathname = usePathname()
+  const { data: session } = useSession()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const isAdmin = (session?.user as any)?.role === 'admin'
 
-  const navItems = [
-    { href: '/', label: 'Tableau de bord', icon: LayoutDashboard },
-    { href: '/repairs', label: 'Réparations', icon: Wrench },
-    { href: '/customers', label: 'Clients', icon: Users },
-    { href: '/parts', label: 'Stock', icon: Package },
-    { href: '/invoices', label: 'Factures', icon: FileText },
-  ]
+  const isClient = (session?.user as any)?.role === 'client'
+  
+  const navItems = isClient
+    ? [
+        { href: '/client', label: 'Mon espace', icon: LayoutDashboard },
+      ]
+    : [
+        { href: '/', label: 'Tableau de bord', icon: LayoutDashboard },
+        { href: '/repairs', label: 'Réparations', icon: Wrench },
+        { href: '/customers', label: 'Clients', icon: Users },
+        { href: '/parts', label: 'Stock', icon: Package },
+        { href: '/quotes', label: 'Devis', icon: Receipt },
+        { href: '/invoices', label: 'Factures', icon: FileText },
+        { href: '/admin', label: 'Administration', icon: Shield, adminOnly: true },
+      ].filter(item => !item.adminOnly || isAdmin)
 
   const isActive = (href: string) => {
     if (href === '/') {
@@ -42,8 +54,8 @@ export default function Navigation() {
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="text-2xl font-bold text-primary-600">
-                Weqeep
+              <Link href={isClient ? "/client" : "/"} className="text-2xl font-bold text-primary-600">
+                RPPHONE
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
@@ -133,30 +145,34 @@ export default function Navigation() {
                 </Link>
               )
             })}
-            <Link
-              href="/profile"
-              onClick={() => setMobileMenuOpen(false)}
-              className={`flex items-center pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-                pathname === '/profile'
-                  ? 'bg-primary-50 border-primary-500 text-primary-700'
-                  : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
-              }`}
-            >
-              <User className="w-5 h-5 mr-3" />
-              Profil
-            </Link>
-            <Link
-              href="/settings"
-              onClick={() => setMobileMenuOpen(false)}
-              className={`flex items-center pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-                pathname === '/settings'
-                  ? 'bg-primary-50 border-primary-500 text-primary-700'
-                  : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
-              }`}
-            >
-              <Settings className="w-5 h-5 mr-3" />
-              Paramètres
-            </Link>
+            {!isClient && (
+              <>
+                <Link
+                  href="/profile"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
+                    pathname === '/profile'
+                      ? 'bg-primary-50 border-primary-500 text-primary-700'
+                      : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
+                  }`}
+                >
+                  <User className="w-5 h-5 mr-3" />
+                  Profil
+                </Link>
+                <Link
+                  href="/settings"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
+                    pathname === '/settings'
+                      ? 'bg-primary-50 border-primary-500 text-primary-700'
+                      : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
+                  }`}
+                >
+                  <Settings className="w-5 h-5 mr-3" />
+                  Paramètres
+                </Link>
+              </>
+            )}
             <button
               onClick={() => {
                 signOut({ callbackUrl: '/login' })

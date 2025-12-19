@@ -3,25 +3,85 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Navigation from '@/components/Navigation'
-import { FileText, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { FileText, CheckCircle, XCircle, Clock, DollarSign } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import Link from 'next/link'
+import InvoiceActionsMenu from '@/components/InvoiceActionsMenu'
 
-export default async function InvoicesPage() {
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+export default async function InvoicesPage({
+  searchParams,
+}: {
+  searchParams: { status?: string }
+}) {
   const session = await getServerSession(authOptions)
 
   if (!session) {
     redirect('/login')
   }
 
+  const statusFilter = searchParams.status || 'all'
+
+  const where: any = {}
+  if (statusFilter === 'unpaid') {
+    where.paymentStatus = 'unpaid'
+  } else if (statusFilter === 'paid') {
+    where.paymentStatus = 'paid'
+  } else if (statusFilter === 'partial') {
+    where.paymentStatus = 'partial'
+  }
+
   const invoices = await prisma.invoice.findMany({
+    where,
     include: {
       customer: true,
-      repair: true,
+      repair: {
+        select: {
+          id: true,
+          ticketNumber: true,
+          deviceType: true,
+          brand: true,
+          model: true,
+        },
+      },
     },
     orderBy: { createdAt: 'desc' },
   })
+
+  // Calculer les statistiques
+  const [
+    totalInvoices,
+    unpaidInvoices,
+    paidInvoices,
+    partialInvoices,
+    totalUnpaidAmount,
+    totalPaidAmount,
+  ] = await Promise.all([
+    prisma.invoice.count(),
+    prisma.invoice.count({ where: { paymentStatus: 'unpaid' } }),
+    prisma.invoice.count({ where: { paymentStatus: 'paid' } }),
+    prisma.invoice.count({ where: { paymentStatus: 'partial' } }),
+    prisma.invoice.aggregate({
+      _sum: { finalAmount: true },
+      where: { paymentStatus: 'unpaid' },
+    }),
+    prisma.invoice.aggregate({
+      _sum: { finalAmount: true },
+      where: { paymentStatus: 'paid' },
+    }),
+  ])
+
+  const stats = {
+    total: totalInvoices,
+    unpaid: unpaidInvoices,
+    paid: paidInvoices,
+    partial: partialInvoices,
+    unpaidAmount: totalUnpaidAmount._sum.finalAmount || 0,
+    paidAmount: totalPaidAmount._sum.finalAmount || 0,
+  }
 
   const getPaymentStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; icon: any; className: string }> = {
@@ -53,55 +113,176 @@ export default async function InvoicesPage() {
             </p>
           </div>
 
+          {/* Statistiques */}
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="p-5">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 bg-blue-100 rounded-md p-3">
+                    <FileText className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">Total</dt>
+                      <dd className="text-lg font-semibold text-gray-900">{stats.total}</dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="p-5">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 bg-red-100 rounded-md p-3">
+                    <XCircle className="h-6 w-6 text-red-600" />
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">En attente</dt>
+                      <dd className="text-lg font-semibold text-gray-900">{stats.unpaid}</dd>
+                      <dd className="text-sm text-gray-500">{stats.unpaidAmount.toFixed(2)} €</dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="p-5">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 bg-green-100 rounded-md p-3">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">Payées</dt>
+                      <dd className="text-lg font-semibold text-gray-900">{stats.paid}</dd>
+                      <dd className="text-sm text-gray-500">{stats.paidAmount.toFixed(2)} €</dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="p-5">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 bg-yellow-100 rounded-md p-3">
+                    <Clock className="h-6 w-6 text-yellow-600" />
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">Partielles</dt>
+                      <dd className="text-lg font-semibold text-gray-900">{stats.partial}</dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Filtres */}
+          <div className="mb-4 flex space-x-2">
+            <Link
+              href="/invoices"
+              className={`px-3 py-1 rounded-md text-sm font-medium ${
+                statusFilter === 'all'
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Toutes
+            </Link>
+            <Link
+              href="/invoices?status=unpaid"
+              className={`px-3 py-1 rounded-md text-sm font-medium ${
+                statusFilter === 'unpaid'
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              En attente
+            </Link>
+            <Link
+              href="/invoices?status=paid"
+              className={`px-3 py-1 rounded-md text-sm font-medium ${
+                statusFilter === 'paid'
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Payées
+            </Link>
+            <Link
+              href="/invoices?status=partial"
+              className={`px-3 py-1 rounded-md text-sm font-medium ${
+                statusFilter === 'partial'
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Partielles
+            </Link>
+          </div>
+
           {invoices.length === 0 ? (
             <div className="bg-white shadow rounded-lg p-12 text-center">
               <FileText className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">Aucune facture</h3>
               <p className="mt-1 text-sm text-gray-500">
-                Les factures apparaîtront ici une fois créées.
+                {statusFilter === 'all'
+                  ? 'Les factures apparaîtront ici une fois créées.'
+                  : 'Aucune facture trouvée avec ce filtre.'}
               </p>
             </div>
           ) : (
-            <div className="bg-white shadow overflow-hidden sm:rounded-md">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Numéro</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Montant</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {invoices.map((invoice) => (
-                    <tr key={invoice.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Link
-                          href={`/invoices/${invoice.id}`}
-                          className="text-sm font-medium text-primary-600 hover:text-primary-700"
-                        >
-                          #{invoice.invoiceNumber.slice(0, 8)}
+            <div className="bg-white shadow overflow-visible sm:rounded-md">
+              <ul className="divide-y divide-gray-200">
+                {invoices.map((invoice) => (
+                  <li key={invoice.id}>
+                    <div className="px-4 py-4 sm:px-6 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <Link href={`/invoices/${invoice.id}`} className="flex items-center flex-1">
+                          <div className="flex-shrink-0">
+                            <FileText className="h-8 w-8 text-primary-600" />
+                          </div>
+                          <div className="ml-4 flex-1">
+                            <div className="flex items-center">
+                              <p className="text-sm font-medium text-gray-900">
+                                {invoice.customer.firstName} {invoice.customer.lastName}
+                              </p>
+                              {getPaymentStatusBadge(invoice.paymentStatus)}
+                            </div>
+                            <div className="mt-2 flex items-center text-sm text-gray-500">
+                              {invoice.repair && (
+                                <>
+                                  <span>{invoice.repair.deviceType} - {invoice.repair.brand} {invoice.repair.model}</span>
+                                  <span className="mx-2">•</span>
+                                </>
+                              )}
+                              <span>Facture #{invoice.invoiceNumber.slice(0, 8)}</span>
+                              <span className="mx-2">•</span>
+                              <span>Créée le {format(new Date(invoice.createdAt), 'dd MMM yyyy', { locale: fr })}</span>
+                            </div>
+                          </div>
                         </Link>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {invoice.customer.firstName} {invoice.customer.lastName}
+                        <div className="ml-4 flex items-center space-x-4">
+                            <div className="text-right">
+                              <p className="text-lg font-semibold text-gray-900">
+                                {invoice.finalAmount.toFixed(2)} € TTC
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                HT: {invoice.totalCost.toFixed(2)} €
+                              </p>
+                            </div>
+                          <InvoiceActionsMenu
+                            invoiceId={invoice.id}
+                            paymentStatus={invoice.paymentStatus}
+                          />
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {format(new Date(invoice.createdAt), 'dd MMM yyyy', { locale: fr })}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {invoice.finalAmount.toFixed(2)} €
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getPaymentStatusBadge(invoice.paymentStatus)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>
@@ -109,4 +290,3 @@ export default async function InvoicesPage() {
     </div>
   )
 }
-

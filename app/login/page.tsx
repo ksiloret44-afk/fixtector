@@ -2,15 +2,17 @@
 
 import { useState, useEffect } from 'react'
 import { signIn, getSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [pendingMessage, setPendingMessage] = useState(searchParams?.get('pending') === 'true')
 
   // Vérifier si l'utilisateur est déjà connecté
   useEffect(() => {
@@ -53,11 +55,17 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary-700 mb-2">Weqeep</h1>
+          <h1 className="text-3xl font-bold text-primary-700 mb-2">RPPHONE</h1>
           <p className="text-gray-600">Gestion de réparations</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {pendingMessage && (
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded">
+              <p className="font-medium">Compte en attente d'approbation</p>
+              <p className="text-sm mt-1">Votre compte a été créé mais nécessite l'approbation d'un administrateur avant de pouvoir vous connecter.</p>
+            </div>
+          )}
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
               {error}

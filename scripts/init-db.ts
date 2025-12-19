@@ -14,15 +14,16 @@ async function main() {
     
     await prisma.user.create({
       data: {
-        email: 'admin@weqeep.com',
+        email: 'admin@rpphone.com',
         password: hashedPassword,
         name: 'Administrateur',
         role: 'admin',
+        approved: true,
       },
     })
     
     console.log('✅ Utilisateur admin créé:')
-    console.log('   Email: admin@weqeep.com')
+    console.log('   Email: admin@rpphone.com')
     console.log('   Mot de passe: admin123')
     console.log('   ⚠️  Changez ce mot de passe après la première connexion!')
   } else {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface NewQuoteFormProps {
@@ -12,27 +12,51 @@ export default function NewQuoteForm({ repair, userId }: NewQuoteFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [taxRate, setTaxRate] = useState(20.0)
 
-  const partsCost = repair.parts.reduce(
+  // Récupérer le taux de TVA depuis les paramètres
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.settings?.taxRate) {
+          setTaxRate(parseFloat(data.settings.taxRate))
+        }
+      })
+      .catch(err => console.error('Erreur:', err))
+  }, [])
+
+  const partsCostHT = repair.parts.reduce(
     (sum: number, rp: any) => sum + rp.quantity * rp.unitPrice,
     0
   )
 
   const [formData, setFormData] = useState({
-    laborCost: repair.estimatedCost ? repair.estimatedCost.toString() : '',
+    totalAmountTTC: '',
     validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       .toISOString()
       .split('T')[0],
     notes: '',
   })
 
+  // Calculer le TTC initial si on a un coût estimé
+  useEffect(() => {
+    if (repair.estimatedCost && !formData.totalAmountTTC) {
+      const estimatedTTC = repair.estimatedCost * (1 + taxRate / 100)
+      setFormData(prev => ({ ...prev, totalAmountTTC: estimatedTTC.toFixed(2) }))
+    }
+  }, [repair.estimatedCost, taxRate])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
-    const laborCost = parseFloat(formData.laborCost) || 0
-    const totalCost = laborCost + partsCost
+    const totalAmountTTC = parseFloat(formData.totalAmountTTC) || 0
+    // Si TVA = 0%, TTC = HT
+    const totalCostHT = taxRate === 0 ? totalAmountTTC : totalAmountTTC / (1 + taxRate / 100)
+    const laborCostHT = totalCostHT - partsCostHT
+    const totalCost = totalCostHT
 
     try {
       const response = await fetch('/api/quotes', {
@@ -42,8 +66,8 @@ export default function NewQuoteForm({ repair, userId }: NewQuoteFormProps) {
           repairId: repair.id,
           customerId: repair.customerId,
           userId,
-          laborCost,
-          partsCost,
+          laborCost: laborCostHT > 0 ? laborCostHT : totalCostHT,
+          partsCost: partsCostHT,
           totalCost,
           validUntil: formData.validUntil,
           notes: formData.notes,
@@ -64,6 +88,11 @@ export default function NewQuoteForm({ repair, userId }: NewQuoteFormProps) {
       setLoading(false)
     }
   }
+
+  const totalAmountTTC = parseFloat(formData.totalAmountTTC) || 0
+  // Si TVA = 0%, TTC = HT
+  const totalCostHT = taxRate === 0 ? totalAmountTTC : totalAmountTTC / (1 + taxRate / 100)
+  const taxAmount = totalAmountTTC - totalCostHT
 
   return (
     <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6 space-y-6">
@@ -86,50 +115,64 @@ export default function NewQuoteForm({ repair, userId }: NewQuoteFormProps) {
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Coût de la main d'œuvre (€) *
+            Montant total TTC (€) <span className="text-red-500">*</span>
           </label>
           <input
             type="number"
             step="0.01"
             required
-            value={formData.laborCost}
-            onChange={(e) => setFormData({ ...formData, laborCost: e.target.value })}
+            value={formData.totalAmountTTC}
+            onChange={(e) => setFormData({ ...formData, totalAmountTTC: e.target.value })}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
+            placeholder="0.00"
           />
+          <p className="mt-1 text-xs text-gray-500">
+            Montant toutes taxes comprises (TVA {taxRate}%)
+          </p>
         </div>
 
         {repair.parts.length > 0 && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Coût des pièces (€)
-            </label>
-            <input
-              type="text"
-              value={partsCost.toFixed(2)}
-              disabled
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
-            />
-            <p className="mt-1 text-xs text-gray-500">
+          <div className="bg-gray-50 p-3 rounded-lg">
+            <p className="text-xs text-gray-600 mb-1">Pièces détachées (HT): {partsCostHT.toFixed(2)} €</p>
+            <p className="text-xs text-gray-500">
               Calculé automatiquement à partir des pièces utilisées
             </p>
           </div>
         )}
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Total (€)
-          </label>
-          <input
-            type="text"
-            value={((parseFloat(formData.laborCost) || 0) + partsCost).toFixed(2)}
-            disabled
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-lg font-semibold"
-          />
+        <div className="bg-gray-50 p-3 rounded-lg">
+          <div className="text-sm space-y-1">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Total HT:</span>
+              <span className="font-medium text-gray-900">
+                {totalCostHT.toFixed(2)} €
+              </span>
+            </div>
+            {taxRate > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">TVA ({taxRate}%):</span>
+                <span className="font-medium text-gray-900">
+                  {taxAmount.toFixed(2)} €
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between pt-1 border-t border-gray-200">
+              <span className="font-semibold text-gray-900">Total TTC:</span>
+              <span className="font-bold text-primary-600">
+                {totalAmountTTC.toFixed(2)} €
+              </span>
+            </div>
+            {taxRate === 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                Auto-entrepreneur : Franchise de TVA (0%)
+              </p>
+            )}
+          </div>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Valide jusqu'au *
+            Valide jusqu'au <span className="text-red-500">*</span>
           </label>
           <input
             type="date"
@@ -173,4 +216,3 @@ export default function NewQuoteForm({ repair, userId }: NewQuoteFormProps) {
     </form>
   )
 }
-
