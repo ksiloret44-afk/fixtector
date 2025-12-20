@@ -64,10 +64,11 @@ export default function Navigation() {
         { href: '/invoices', label: 'Factures', icon: FileText },
         { href: '/reports', label: 'Rapports', icon: BarChart3 },
         { href: '/appointments', label: 'Rendez-vous', icon: Calendar },
-        { href: '/team', label: 'Collaborateurs', icon: UserCog },
       ]
   
   const subMenuItems = [
+    { href: '/profile', label: 'Profil', icon: User },
+    { href: '/team', label: 'Collaborateurs', icon: UserCog },
     { href: '/settings', label: 'Paramètres', icon: Settings },
     { href: '/updates', label: 'Mises à jour', icon: Download },
     { href: '/admin', label: 'Administration', icon: Shield, adminOnly: true },
@@ -159,17 +160,6 @@ export default function Navigation() {
             </div>
           </div>
           <div className="hidden sm:flex sm:items-center sm:space-x-4 sm:flex-shrink-0">
-            <Link
-              href="/profile"
-              className={`inline-flex items-center px-3 py-2 border-b-2 text-sm font-medium ${
-                pathname === '/profile'
-                  ? 'border-primary-500 text-gray-900'
-                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-              }`}
-            >
-              <User className="w-4 h-4 mr-2" />
-              Profil
-            </Link>
             <button
               onClick={() => signOut({ callbackUrl: '/login' })}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
@@ -216,18 +206,6 @@ export default function Navigation() {
             })}
             {!isClient && (
               <>
-                <Link
-                  href="/profile"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-                    pathname === '/profile'
-                      ? 'bg-primary-50 border-primary-500 text-primary-700'
-                      : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
-                  }`}
-                >
-                  <User className="w-5 h-5 mr-3" />
-                  Profil
-                </Link>
                 <div className="border-t border-gray-200 my-1"></div>
                 <div className="pl-3 pr-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Plus
