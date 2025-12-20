@@ -1,0 +1,18 @@
+{
+  "name": "FixTector - Gestion de réparations",
+  "short_name": "FixTector",
+  "description": "Solution complète pour la gestion de votre activité de réparation",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+

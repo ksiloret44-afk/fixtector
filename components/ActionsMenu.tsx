@@ -33,8 +33,9 @@ export default function ActionsMenu({ type, id, status, repairId }: ActionsMenuP
   }, [isOpen])
 
   const handleDownload = () => {
-    // TODO: Implémenter le téléchargement PDF
-    alert('Téléchargement PDF à venir')
+    // Télécharger le PDF
+    const url = `/${type === 'quote' ? 'quotes' : 'invoices'}/${id}/pdf`
+    window.open(url, '_blank')
     setIsOpen(false)
   }
 

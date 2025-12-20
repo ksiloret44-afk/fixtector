@@ -69,7 +69,10 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary-700 mb-2">Créer un compte</h1>
+          <div className="flex justify-center mb-4">
+            <img src="/logo.svg" alt="FixTector" className="h-16" />
+          </div>
+          <h1 className="text-2xl font-bold text-primary-700 mb-2">Créer un compte</h1>
           <p className="text-gray-600">Rejoignez FixTector</p>
         </div>
 

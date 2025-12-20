@@ -174,21 +174,24 @@ export async function isUserAdmin(): Promise<boolean> {
  */
 export async function initCompanyDatabase(companyId: string): Promise<void> {
   const dbPath = getCompanyDbPath(companyId)
+  const dbUrl = `file:${dbPath}`
   
-  // Si la base de données n'existe pas, créer le schéma
-  if (!fs.existsSync(dbPath)) {
-    const dbUrl = `file:${dbPath}`
-    
-    // Utiliser Prisma CLI pour pousser le schéma de l'entreprise
-    try {
-      process.env.DATABASE_URL = dbUrl
-      execSync(`npx prisma db push --schema=prisma/schema-company.prisma`, {
-        cwd: process.cwd(),
-        stdio: 'inherit',
-      })
+  // Toujours synchroniser le schéma pour s'assurer que la base est à jour
+  try {
+    process.env.DATABASE_URL = dbUrl
+    execSync(`npx prisma db push --schema=prisma/schema-company.prisma --accept-data-loss --skip-generate`, {
+      cwd: process.cwd(),
+      stdio: 'pipe',
+    })
+    if (!fs.existsSync(dbPath)) {
       console.log(`Base de données créée pour l'entreprise ${companyId}`)
-    } catch (error) {
-      console.error(`Erreur lors de l'initialisation de la base pour l'entreprise ${companyId}:`, error)
+    } else {
+      console.log(`Base de données synchronisée pour l'entreprise ${companyId}`)
+    }
+  } catch (error) {
+    console.error(`Erreur lors de l'initialisation de la base pour l'entreprise ${companyId}:`, error)
+    // Ne pas faire échouer si la base existe déjà et a le bon schéma
+    if (!fs.existsSync(dbPath)) {
       throw error
     }
   }

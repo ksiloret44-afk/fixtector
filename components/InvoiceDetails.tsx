@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { useRouter } from 'next/navigation'
-import { FileText, Calendar, DollarSign, CheckCircle, XCircle, Calculator } from 'lucide-react'
+import { FileText, Calendar, DollarSign, CheckCircle, XCircle, Calculator, Download, FileCode } from 'lucide-react'
 import Link from 'next/link'
 
 interface InvoiceDetailsProps {
@@ -63,8 +63,33 @@ export default function InvoiceDetails({ invoice, isClient = false }: InvoiceDet
           {getPaymentStatusBadge(invoice.paymentStatus)}
         </div>
 
-        {!isClient && invoice.paymentStatus !== 'paid' && (
-          <div className="mb-6">
+        <div className="mb-6 flex space-x-3 flex-wrap gap-3">
+          <a
+            href={`/api/invoices/${invoice.id}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Télécharger PDF
+          </a>
+          <a
+            href={`/api/invoices/${invoice.id}/electronic`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center px-4 py-2 border border-primary-300 text-sm font-medium rounded-md text-primary-700 bg-primary-50 hover:bg-primary-100"
+            title="Facture électronique conforme à la réforme 2025-2027 (format UBL 2.1)"
+          >
+            <FileCode className="h-4 w-4 mr-2" />
+            Facture électronique (XML)
+          </a>
+          {invoice.electronicSent && (
+            <div className="inline-flex items-center px-3 py-2 bg-green-50 border border-green-200 rounded-md text-sm text-green-700">
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Envoyée électroniquement le {format(new Date(invoice.electronicSentAt || invoice.updatedAt), 'dd/MM/yyyy', { locale: fr })}
+            </div>
+          )}
+          {!isClient && invoice.paymentStatus !== 'paid' && (
             <button
               onClick={handleMarkAsPaid}
               disabled={loading}
@@ -73,8 +98,8 @@ export default function InvoiceDetails({ invoice, isClient = false }: InvoiceDet
               <CheckCircle className="h-4 w-4 mr-2" />
               {loading ? 'Traitement...' : 'Marquer comme payée'}
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div>

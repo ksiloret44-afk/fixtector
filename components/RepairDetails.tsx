@@ -16,6 +16,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import Link from 'next/link'
+import RepairPhotos from './RepairPhotos'
 
 interface RepairDetailsProps {
   repair: any
@@ -263,6 +264,9 @@ export default function RepairDetails({ repair, isClient = false }: RepairDetail
               <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded">{repair.issue}</p>
             </div>
           </div>
+
+          {/* Photos */}
+          {!isClient && <RepairPhotos repairId={repair.id} />}
 
           {/* Notes */}
           {(repair.notes || repair.internalNotes) && (

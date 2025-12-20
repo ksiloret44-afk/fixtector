@@ -104,10 +104,41 @@ npm run db:studio
 
 ## Déploiement
 
+### Installation automatique sur VPS Linux
+
+Pour une installation automatique complète sur un serveur Linux :
+
+```bash
+# Télécharger et exécuter le script d'installation
+wget https://raw.githubusercontent.com/votre-repo/fixtector/main/install.sh
+chmod +x install.sh
+sudo ./install.sh
+```
+
+Le script installe automatiquement :
+- Node.js 20.x LTS
+- Toutes les dépendances système
+- L'application et ses dépendances npm
+- Prisma et les bases de données
+- PM2 pour la gestion des processus
+- Nginx comme reverse proxy
+- SSL avec Let's Encrypt (optionnel)
+- Scripts de sauvegarde automatique
+
+Voir `INSTALL.md` pour plus de détails.
+
+### Déploiement manuel
+
 L'application peut être déployée sur Vercel, Railway, ou tout autre hébergeur supportant Next.js.
 
 Pour la production, pensez à :
 - Changer `DATABASE_URL` pour PostgreSQL
 - Configurer `NEXTAUTH_SECRET` avec une valeur sécurisée
 - Configurer `NEXTAUTH_URL` avec votre domaine
+
+### Documentation de déploiement
+
+- `INSTALL.md` - Guide d'installation automatique
+- `DEPLOY.md` - Guide de déploiement détaillé
+- `VPS_REQUIREMENTS.md` - Spécifications système requises
 

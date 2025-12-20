@@ -17,7 +17,16 @@ model Company {
   address     String?
   city        String?
   postalCode  String?
-  siret       String?
+  country     String?  @default("France")
+  siret       String?  // Numéro SIRET (France)
+  siren       String?  // Numéro SIREN (France)
+  rcs         String?  // RCS (Registre du Commerce et des Sociétés)
+  rcsCity     String?  // Ville du RCS
+  vatNumber   String?  // Numéro de TVA intracommunautaire (ex: FR12345678901)
+  legalForm   String?  // Forme juridique (SARL, SAS, EURL, etc.)
+  capital     String?  // Capital social
+  director    String?  // Directeur/Représentant légal
+  logoUrl     String?  // URL du logo de l'entreprise (stocké dans /public/logos/)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

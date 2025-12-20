@@ -25,6 +25,9 @@ model Customer {
   repairs     Repair[]
   invoices    Invoice[]
   quotes      Quote[]
+  appointments Appointment[]
+  warranties  Warranty[]
+  signatures  Signature[]
 
   @@index([email])
   @@index([phone])
@@ -33,6 +36,7 @@ model Customer {
 model Repair {
   id          String      @id @default(cuid())
   ticketNumber String     @unique @default(uuid())
+  trackingToken String?  @unique // Token unique pour le suivi public
   customerId  String
   customer    Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
   userId      String      // ID de l'utilisateur (référence vers la base principale)
@@ -58,6 +62,11 @@ model Repair {
   quote        Quote?
   invoice      Invoice?
   parts        RepairPart[]
+  photos       RepairPhoto[]
+  appointments Appointment[]
+  warranties   Warranty[]
+
+  @@index([trackingToken])
 }
 
 model Part {
@@ -74,9 +83,11 @@ model Part {
   updatedAt   DateTime @updatedAt
 
   repairs     RepairPart[]
+  stockAlerts StockAlert[]
 
   @@index([category])
   @@index([name])
+  @@index([stock])
 }
 
 model RepairPart {
@@ -105,6 +116,12 @@ model Quote {
   validUntil  DateTime
   status      String   @default("pending")
   
+  // Mentions légales
+  paymentTerms String?  // Conditions de paiement (ex: "Paiement à la livraison")
+  paymentDeadline Int?   // Délai de paiement en jours
+  latePaymentPenalty Float? // Taux d'intérêt de retard (ex: 3x le taux légal)
+  warrantyInfo String?  // Informations sur la garantie légale
+  
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -130,9 +147,147 @@ model Invoice {
   paymentMethod String?
   paidAt        DateTime?
   
+  // Mentions légales obligatoires (UE)
+  paymentTerms String?  // Conditions de paiement
+  paymentDeadline Int?   // Délai de paiement en jours (ex: 30)
+  latePaymentPenalty Float? // Taux d'intérêt de retard
+  legalMentions String?  // Mentions légales personnalisées
+  warrantyInfo String?  // Informations sur la garantie légale de conformité
+  
+  // Facturation électronique (Réforme 2025-2027)
+  electronicFormat String? // Format électronique (UBL, Factur-X, etc.)
+  electronicSent Boolean @default(false) // Facture envoyée électroniquement
+  electronicSentAt DateTime? // Date d'envoi électronique
+  ppfReference String? // Référence Plateforme Publique de Facturation
+  xmlData String? // Données XML de la facture électronique (base64)
+  
   notes         String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  dueDate       DateTime? // Date d'échéance
+}
+
+model RepairPhoto {
+  id          String   @id @default(cuid())
+  repairId    String
+  repair      Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
+  url         String   // URL ou chemin du fichier
+  filename    String
+  type        String   @default("before") // before, after, other
+  description String?
+  uploadedBy  String   // ID de l'utilisateur
+  createdAt   DateTime @default(now())
+
+  @@index([repairId])
+}
+
+model Appointment {
+  id          String   @id @default(cuid())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  repairId    String?
+  repair      Repair?  @relation(fields: [repairId], references: [id], onDelete: SetNull)
+  userId      String   // ID de l'utilisateur
+  
+  title       String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  status      String   @default("scheduled") // scheduled, confirmed, completed, cancelled
+  reminderSent Boolean @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([startDate])
+  @@index([status])
+}
+
+model Warranty {
+  id          String   @id @default(cuid())
+  repairId    String
+  repair      Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  type        String   // manufacturer, repair, extended
+  startDate   DateTime
+  endDate     DateTime
+  duration    Int      // Durée en jours
+  description String?
+  
+  alertSent   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([repairId])
+  @@index([endDate])
+}
+
+model NotificationTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // email, sms
+  event       String   // repair_created, repair_status_changed, appointment_reminder, etc.
+  subject     String?  // Pour les emails
+  content     String   // Contenu du template avec variables {{variable}}
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([event, type])
+  @@index([event])
+}
+
+model Signature {
+  id          String   @id @default(cuid())
+  documentType String  // quote, invoice, receipt
+  documentId   String
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  signatureData String // Base64 de la signature
+  signedBy      String // Nom de la personne qui a signé
+  signedAt      DateTime @default(now())
+  ipAddress     String?
+  
+  createdAt     DateTime @default(now())
+
+  @@index([documentType, documentId])
+  @@index([customerId])
+}
+
+model Currency {
+  id          String   @id @default(cuid())
+  code        String   @unique // EUR, USD, GBP, etc.
+  name        String
+  symbol      String
+  rate        Float    @default(1.0) // Taux de change par rapport à la devise de base
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model StockAlert {
+  id          String   @id @default(cuid())
+  partId      String
+  part        Part     @relation(fields: [partId], references: [id], onDelete: Cascade)
+  
+  threshold   Int      // Seuil d'alerte
+  currentStock Int
+  alertType   String   // low_stock, out_of_stock
+  notified    Boolean  @default(false)
+  notifiedAt  DateTime?
+  
+  createdAt   DateTime @default(now())
+
+  @@index([partId])
+  @@index([notified])
 }
 
 model Settings {

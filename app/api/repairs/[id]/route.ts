@@ -86,6 +86,7 @@ export async function PATCH(
             customerPhone: repair.customer.phone,
             repairId: repair.id,
             ticketNumber: repair.ticketNumber,
+            trackingToken: repair.trackingToken || undefined,
             deviceType: repair.deviceType,
             brand: repair.brand,
             model: repair.model,

@@ -21,6 +21,7 @@ interface RepairNotificationData {
   customerPhone: string
   repairId: string
   ticketNumber: string
+  trackingToken?: string
   deviceType: string
   brand: string
   model: string
@@ -280,6 +281,20 @@ function generateEmailTemplate(data: RepairNotificationData, statusLabel: string
             ${data.estimatedTime ? `<p><strong>Durée estimée:</strong> ${data.estimatedTime}</p>` : ''}
             ${data.notes ? `<p><strong>Notes:</strong> ${data.notes}</p>` : ''}
           </div>
+          ${data.trackingToken ? `
+          <div class="info-box" style="background-color: #EEF2FF; border-left: 4px solid #4F46E5; padding: 15px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #4F46E5;">Suivez votre réparation en temps réel</h3>
+            <p>Consultez l'avancement de votre réparation à tout moment avec ce lien unique :</p>
+            <p style="text-align: center; margin: 15px 0;">
+              <a href="${getTrackingUrl(data.trackingToken)}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                Voir le suivi de ma réparation
+              </a>
+            </p>
+            <p style="font-size: 12px; color: #666; margin-top: 10px;">
+              Ou copiez ce lien : ${getTrackingUrl(data.trackingToken)}
+            </p>
+          </div>
+          ` : ''}
           <p>Pour toute question, n'hésitez pas à nous contacter.</p>
         </div>
         <div class="footer">
@@ -306,6 +321,11 @@ Détails de la réparation:
 ${data.finalCost ? `- Coût final: ${data.finalCost.toFixed(2)} €` : data.estimatedCost ? `- Coût estimé: ${data.estimatedCost.toFixed(2)} €` : ''}
 ${data.estimatedTime ? `- Durée estimée: ${data.estimatedTime}` : ''}
 ${data.notes ? `- Notes: ${data.notes}` : ''}
+
+${data.trackingToken ? `
+Suivez votre réparation en temps réel :
+${getTrackingUrl(data.trackingToken)}
+` : ''}
 
 Pour toute question, n'hésitez pas à nous contacter.
 
@@ -337,8 +357,10 @@ function generateSMSTemplate(data: RepairNotificationData, statusLabel: string):
     : data.estimatedCost
     ? ` Coût estimé: ${data.estimatedCost.toFixed(2)}€`
     : ''
+  
+  const trackingLink = data.trackingToken ? ` Suivi: ${getTrackingUrl(data.trackingToken)}` : ''
 
-  return `${message}. Ticket: ${data.ticketNumber}. ${data.deviceType} ${data.brand} ${data.model}.${costInfo} ${data.companyName || 'FixTector'}`
+  return `${message}. Ticket: ${data.ticketNumber}. ${data.deviceType} ${data.brand} ${data.model}.${costInfo}${trackingLink} ${data.companyName || 'FixTector'}`
 }
 
 /**

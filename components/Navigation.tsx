@@ -17,6 +17,8 @@ import {
   Settings,
   Shield,
   UserCog,
+  BarChart3,
+  Calendar,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -39,6 +41,8 @@ export default function Navigation() {
         { href: '/parts', label: 'Stock', icon: Package },
         { href: '/quotes', label: 'Devis', icon: Receipt },
         { href: '/invoices', label: 'Factures', icon: FileText },
+        { href: '/reports', label: 'Rapports', icon: BarChart3 },
+        { href: '/appointments', label: 'Rendez-vous', icon: Calendar },
         { href: '/team', label: 'Collaborateurs', icon: UserCog },
         { href: '/admin', label: 'Administration', icon: Shield, adminOnly: true },
       ].filter(item => !item.adminOnly || isAdmin)
@@ -53,14 +57,14 @@ export default function Navigation() {
   return (
     <nav className="bg-white shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
-              <Link href={isClient ? "/client" : "/"} className="text-2xl font-bold text-primary-600">
-                FixTector
-              </Link>
-            </div>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+        <div className="flex justify-between items-center h-16">
+              <div className="flex-shrink-0">
+                <Link href={isClient ? "/client" : "/"} className="flex items-center space-x-2">
+                  <img src="/logo.svg" alt="FixTector" className="h-10" />
+                </Link>
+              </div>
+          <div className="hidden sm:flex sm:flex-1 sm:justify-center">
+            <div className="flex space-x-6">
               {navItems.map((item) => {
                 const Icon = item.icon
                 return (
@@ -80,7 +84,7 @@ export default function Navigation() {
               })}
             </div>
           </div>
-          <div className="hidden sm:ml-6 sm:flex sm:items-center sm:space-x-4">
+          <div className="hidden sm:flex sm:items-center sm:space-x-4 sm:flex-shrink-0">
             <Link
               href="/profile"
               className={`inline-flex items-center px-3 py-2 border-b-2 text-sm font-medium ${

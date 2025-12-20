@@ -3,6 +3,39 @@ import { getUserPrisma, getMainPrisma } from '@/lib/db-manager'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { sendRepairStatusNotification } from '@/lib/notifications'
+import { generateTrackingToken } from '@/lib/tracking'
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
+
+    const companyPrisma = await getUserPrisma()
+    if (!companyPrisma) {
+      return NextResponse.json(
+        { error: 'Vous devez être associé à une entreprise' },
+        { status: 403 }
+      )
+    }
+
+    const repairs = await companyPrisma.repair.findMany({
+      include: {
+        customer: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    return NextResponse.json({ repairs })
+  } catch (error) {
+    console.error('Erreur:', error)
+    return NextResponse.json(
+      { error: 'Une erreur est survenue' },
+      { status: 500 }
+    )
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -91,6 +124,9 @@ export async function POST(request: Request) {
       }
     }
 
+    // Générer un token de suivi unique
+    const trackingToken = generateTrackingToken()
+
     // Créer la réparation
     const repair = await companyPrisma.repair.create({
       data: {
@@ -105,6 +141,7 @@ export async function POST(request: Request) {
         estimatedTime: estimatedTime || null,
         notes: finalNotes || null,
         status: 'pending',
+        trackingToken,
       },
       include: {
         customer: true,
@@ -125,6 +162,7 @@ export async function POST(request: Request) {
         customerPhone: repair.customer.phone,
         repairId: repair.id,
         ticketNumber: repair.ticketNumber,
+        trackingToken: trackingToken,
         deviceType: repair.deviceType,
         brand: repair.brand,
         model: repair.model,
@@ -148,4 +186,3 @@ export async function POST(request: Request) {
     )
   }
 }
-

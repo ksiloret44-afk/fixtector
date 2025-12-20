@@ -56,6 +56,8 @@ export async function POST(request: Request) {
       smsProvider,
       smsApiKey,
       smsFrom,
+      sslEnabled,
+      forceHttps,
     } = body
 
     const companyPrisma = await getUserPrisma()
@@ -124,6 +126,31 @@ export async function POST(request: Request) {
           },
         })
       }
+    }
+
+    // Mettre à jour les paramètres SSL
+    if (sslEnabled !== undefined) {
+      await companyPrisma.settings.upsert({
+        where: { key: 'sslEnabled' },
+        update: { value: sslEnabled.toString() },
+        create: {
+          key: 'sslEnabled',
+          value: sslEnabled.toString(),
+          description: 'Activation SSL/HTTPS',
+        },
+      })
+    }
+
+    if (forceHttps !== undefined) {
+      await companyPrisma.settings.upsert({
+        where: { key: 'forceHttps' },
+        update: { value: forceHttps.toString() },
+        create: {
+          key: 'forceHttps',
+          value: forceHttps.toString(),
+          description: 'Forcer la redirection HTTP vers HTTPS',
+        },
+      })
     }
 
     return NextResponse.json({ success: true })

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { useRouter } from 'next/navigation'
-import { FileText, Calendar, DollarSign, CheckCircle, XCircle } from 'lucide-react'
+import { FileText, Calendar, DollarSign, CheckCircle, XCircle, Download } from 'lucide-react'
 import Link from 'next/link'
 
 interface QuoteDetailsProps {
@@ -82,26 +82,37 @@ export default function QuoteDetails({ quote, isClient = false }: QuoteDetailsPr
           {getStatusBadge(quote.status)}
         </div>
 
-        {quote.status === 'pending' && isValid && (
-          <div className="flex space-x-3 mb-6">
-            <button
-              onClick={() => updateStatus('accepted')}
-              disabled={loading}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              {loading ? 'Traitement...' : 'Accepter le devis'}
-            </button>
-            <button
-              onClick={() => updateStatus('rejected')}
-              disabled={loading}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
-            >
-              <XCircle className="h-4 w-4 mr-2" />
-              Refuser
-            </button>
-          </div>
-        )}
+        <div className="mb-6 flex space-x-3">
+          <a
+            href={`/api/quotes/${quote.id}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Télécharger PDF
+          </a>
+          {quote.status === 'pending' && isValid && (
+            <>
+              <button
+                onClick={() => updateStatus('accepted')}
+                disabled={loading}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                {loading ? 'Traitement...' : 'Accepter le devis'}
+              </button>
+              <button
+                onClick={() => updateStatus('rejected')}
+                disabled={loading}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
+              >
+                <XCircle className="h-4 w-4 mr-2" />
+                Refuser
+              </button>
+            </>
+          )}
+        </div>
 
         {quote.status === 'accepted' && quote.repair?.invoice && (
           <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
