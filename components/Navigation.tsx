@@ -19,6 +19,7 @@ import {
   UserCog,
   BarChart3,
   Calendar,
+  Download,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -44,6 +45,7 @@ export default function Navigation() {
         { href: '/reports', label: 'Rapports', icon: BarChart3 },
         { href: '/appointments', label: 'Rendez-vous', icon: Calendar },
         { href: '/team', label: 'Collaborateurs', icon: UserCog },
+        { href: '/updates', label: 'Mises à jour', icon: Download },
         { href: '/admin', label: 'Administration', icon: Shield, adminOnly: true },
       ].filter(item => !item.adminOnly || isAdmin)
 
