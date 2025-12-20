@@ -26,19 +26,60 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setPendingMessage(false)
     setLoading(true)
 
     try {
-      // Utiliser redirect: true pour que NextAuth gère correctement les cookies
+      // Utiliser redirect: false pour gérer les erreurs manuellement
       const result = await signIn('credentials', {
         email,
         password,
-        redirect: true,
+        redirect: false,
         callbackUrl: '/',
       })
       
-      // Si on arrive ici, c'est qu'il y a eu une erreur (car redirect: true devrait rediriger)
-      console.log('Sign in result (ne devrait pas arriver ici):', result)
+      if (result?.error) {
+        // Vérifier le type d'erreur
+        if (result.error === 'COMPTE_SUSPENDU') {
+          setError('Votre compte a été suspendu. Veuillez contacter l\'administrateur.')
+          setLoading(false)
+          return
+        }
+        
+        // Si la connexion échoue, vérifier le statut d'approbation
+        try {
+          const statusResponse = await fetch('/api/auth/check-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          })
+          
+          if (statusResponse.ok) {
+            const statusData = await statusResponse.json()
+            if (statusData.suspended) {
+              setError('Votre compte a été suspendu. Veuillez contacter l\'administrateur.')
+            } else if (!statusData.approved) {
+              // Le compte existe mais n'est pas approuvé
+              setPendingMessage(true)
+              setError('')
+            } else {
+              // Le compte est approuvé mais les identifiants sont incorrects
+              setError('Email ou mot de passe incorrect')
+            }
+          } else {
+            // Utilisateur non trouvé ou autre erreur
+            setError('Email ou mot de passe incorrect')
+          }
+        } catch (statusErr) {
+          // Erreur lors de la vérification du statut
+          setError('Email ou mot de passe incorrect')
+        }
+        setLoading(false)
+      } else if (result?.ok) {
+        // Connexion réussie, rediriger
+        router.push('/')
+        router.refresh()
+      }
     } catch (err: any) {
       console.error('Sign in exception:', err)
       // Si l'erreur contient "NEXT_REDIRECT", c'est normal (c'est NextAuth qui redirige)
@@ -55,7 +96,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary-700 mb-2">RPPHONE</h1>
+          <h1 className="text-3xl font-bold text-primary-700 mb-2">FixTector</h1>
           <p className="text-gray-600">Gestion de réparations</p>
         </div>
 

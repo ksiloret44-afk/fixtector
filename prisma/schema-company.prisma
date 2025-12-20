@@ -1,0 +1,146 @@
+// Schéma pour les bases de données d'entreprise (une par entreprise)
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client-company"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id          String   @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String?
+  phone       String
+  address     String?
+  city        String?
+  postalCode  String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  repairs     Repair[]
+  invoices    Invoice[]
+  quotes      Quote[]
+
+  @@index([email])
+  @@index([phone])
+}
+
+model Repair {
+  id          String      @id @default(cuid())
+  ticketNumber String     @unique @default(uuid())
+  customerId  String
+  customer    Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  userId      String      // ID de l'utilisateur (référence vers la base principale)
+  
+  deviceType  String
+  brand       String
+  model       String
+  serialNumber String?
+  issue       String
+  status      String      @default("pending")
+  
+  estimatedCost Float?
+  finalCost     Float?
+  estimatedTime String?
+  
+  notes        String?
+  internalNotes String?
+  
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  completedAt  DateTime?
+
+  quote        Quote?
+  invoice      Invoice?
+  parts        RepairPart[]
+}
+
+model Part {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  brand       String?
+  partNumber  String?
+  category    String
+  stock       Int      @default(0)
+  unitPrice   Float
+  supplier    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  repairs     RepairPart[]
+
+  @@index([category])
+  @@index([name])
+}
+
+model RepairPart {
+  id        String   @id @default(cuid())
+  repairId  String
+  repair    Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
+  partId    String
+  part      Part     @relation(fields: [partId], references: [id])
+  quantity  Int      @default(1)
+  unitPrice Float
+  createdAt DateTime @default(now())
+}
+
+model Quote {
+  id          String   @id @default(cuid())
+  quoteNumber String   @unique @default(uuid())
+  repairId    String   @unique
+  repair      Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  userId      String
+  
+  laborCost   Float
+  partsCost   Float
+  totalCost   Float
+  validUntil  DateTime
+  status      String   @default("pending")
+  
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  invoiceNumber String   @unique @default(uuid())
+  repairId      String   @unique
+  repair        Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  userId        String
+  
+  laborCost     Float
+  partsCost     Float
+  totalCost     Float
+  taxRate       Float    @default(20.0)
+  taxAmount     Float
+  finalAmount   Float
+  
+  paymentStatus String   @default("unpaid")
+  paymentMethod String?
+  paidAt        DateTime?
+  
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Settings {
+  id            String   @id @default(cuid())
+  key           String   @unique
+  value         String
+  description   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+

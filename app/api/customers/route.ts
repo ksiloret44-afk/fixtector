@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getUserPrisma } from '@/lib/db-manager'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
@@ -20,9 +20,21 @@ export async function POST(request: Request) {
       )
     }
 
-    // Vérifier si un client avec le même téléphone existe déjà
-    const existingCustomer = await prisma.customer.findFirst({
-      where: { phone },
+    // Récupérer la connexion Prisma de l'entreprise de l'utilisateur
+    // Les admins ne peuvent pas créer de clients (ils gèrent depuis la base principale)
+    const companyPrisma = await getUserPrisma()
+    if (!companyPrisma) {
+      return NextResponse.json(
+        { error: 'Seuls les utilisateurs avec une entreprise peuvent créer des clients. Les administrateurs gèrent les utilisateurs et entreprises depuis la base principale.' },
+        { status: 403 }
+      )
+    }
+
+    // Vérifier si un client avec le même téléphone existe déjà dans cette entreprise
+    const existingCustomer = await companyPrisma.customer.findFirst({
+      where: { 
+        phone,
+      },
     })
 
     if (existingCustomer) {
@@ -32,8 +44,8 @@ export async function POST(request: Request) {
       )
     }
 
-    // Créer le client
-    const customer = await prisma.customer.create({
+    // Créer le client dans la base de données de l'entreprise
+    const customer = await companyPrisma.customer.create({
       data: {
         firstName,
         lastName,

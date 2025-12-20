@@ -29,40 +29,20 @@ export async function POST(request: Request) {
     // Hasher le mot de passe
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Vérifier si un Customer existe déjà avec cet email
+    // Pour les utilisateurs avec le rôle "client", on ne crée pas de Customer ici
+    // Le Customer sera créé par l'entreprise lors de l'ajout du client
+    // Pour les autres rôles (user, admin), ils auront une entreprise lors de l'approbation
     let customerId: string | undefined = undefined
-    const existingCustomer = await prisma.customer.findFirst({
-      where: { email: email },
-    })
 
-    if (existingCustomer) {
-      customerId = existingCustomer.id
-    } else {
-      // Créer un Customer automatiquement si l'email n'existe pas
-      const nameParts = name.split(' ')
-      const firstName = nameParts[0] || name
-      const lastName = nameParts.slice(1).join(' ') || name
-      
-      const newCustomer = await prisma.customer.create({
-        data: {
-          firstName,
-          lastName,
-          email: email,
-          phone: '', // Le client pourra compléter plus tard
-        },
-      })
-      customerId = newCustomer.id
-    }
-
-    // Créer l'utilisateur (non approuvé par défaut, rôle client)
+    // Créer l'utilisateur (non approuvé par défaut, rôle user par défaut)
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        role: 'client', // Par défaut, les nouveaux utilisateurs sont des clients
+        role: 'user', // Par défaut, les nouveaux utilisateurs sont des "user" (pas "client")
         approved: false, // Nécessite l'approbation d'un admin
-        customerId: customerId,
+        customerId: customerId, // null par défaut, sera lié lors de l'approbation si nécessaire
       },
     })
 

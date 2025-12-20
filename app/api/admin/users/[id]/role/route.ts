@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getMainPrisma } from '@/lib/db-manager'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
@@ -23,12 +23,24 @@ export async function PATCH(
       )
     }
 
-    const user = await prisma.user.update({
+    const mainPrisma = getMainPrisma()
+    const user = await mainPrisma.user.update({
       where: { id: params.id },
       data: { role },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        approved: true,
+        companyId: true,
+      },
     })
 
-    return NextResponse.json({ user })
+    return NextResponse.json({ 
+      user,
+      message: `Rôle de l'utilisateur changé en "${role}". L'utilisateur devra se reconnecter pour que les changements prennent effet.`
+    })
   } catch (error) {
     console.error('Erreur:', error)
     return NextResponse.json(

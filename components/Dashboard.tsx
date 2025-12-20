@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { getUserPrisma, getMainPrisma } from '@/lib/db-manager'
 import Navigation from './Navigation'
 import {
   Wrench,
@@ -15,7 +15,126 @@ import Link from 'next/link'
 export default async function Dashboard() {
   const session = await getServerSession(authOptions)
 
-  // Récupérer les statistiques
+  if (!session) {
+    return null
+  }
+
+  // Récupérer la connexion Prisma de l'entreprise de l'utilisateur
+  const companyPrisma = await getUserPrisma()
+  
+  // Si l'utilisateur n'a pas de base d'entreprise, afficher un message
+  if (!companyPrisma) {
+    const mainPrisma = getMainPrisma()
+    const user = await mainPrisma.user.findUnique({
+      where: { id: (session.user as any).id },
+      select: { role: true },
+    })
+
+    // Si c'est un admin, on peut quand même afficher le tableau de bord vide
+    // ou rediriger vers l'administration
+    if (user?.role === 'admin') {
+      // Pour les admins, on affiche un tableau de bord vide mais avec la même structure
+      return (
+        <div className="min-h-screen bg-gray-50">
+          <Navigation />
+          <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <div className="px-4 py-6 sm:px-0">
+              <div className="mb-8">
+                <h1 className="text-3xl font-bold text-gray-900">
+                  Bienvenue, {session?.user?.name}
+                </h1>
+                <p className="mt-2 text-gray-600">
+                  Voici un aperçu de votre activité
+                </p>
+              </div>
+
+              {/* Statistiques vides pour les admins */}
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+                {[
+                  { name: 'Réparations en attente', value: 0, icon: Clock, color: 'text-yellow-600', bgColor: 'bg-yellow-100', href: '/repairs?status=pending' },
+                  { name: 'Réparations terminées', value: 0, icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-100', href: '/repairs?status=completed' },
+                  { name: 'Total clients', value: 0, icon: Users, color: 'text-blue-600', bgColor: 'bg-blue-100', href: '/customers' },
+                  { name: 'Chiffre d\'affaires', value: '0.00 €', icon: DollarSign, color: 'text-purple-600', bgColor: 'bg-purple-100', href: '/invoices' },
+                ].map((stat) => {
+                  const Icon = stat.icon
+                  return (
+                    <Link
+                      key={stat.name}
+                      href={stat.href}
+                      className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
+                    >
+                      <div className="p-5">
+                        <div className="flex items-center">
+                          <div className={`flex-shrink-0 ${stat.bgColor} rounded-md p-3`}>
+                            <Icon className={`h-6 w-6 ${stat.color}`} />
+                          </div>
+                          <div className="ml-5 w-0 flex-1">
+                            <dl>
+                              <dt className="text-sm font-medium text-gray-500 truncate">
+                                {stat.name}
+                              </dt>
+                              <dd className="text-lg font-semibold text-gray-900">
+                                {stat.value}
+                              </dd>
+                            </dl>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+
+              {/* Réparations récentes vides */}
+              <div className="bg-white shadow rounded-lg">
+                <div className="px-4 py-5 sm:p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-medium text-gray-900">
+                      Réparations récentes
+                    </h2>
+                    <Link
+                      href="/repairs"
+                      className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                    >
+                      Voir tout
+                    </Link>
+                  </div>
+                  <div className="flow-root">
+                    <ul className="-my-5 divide-y divide-gray-200">
+                      <li className="py-5">
+                        <p className="text-sm text-gray-500 text-center">
+                          Aucune réparation pour le moment
+                        </p>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      )
+    }
+
+    // Pour les autres utilisateurs non approuvés
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+          <div className="px-4 py-6 sm:px-0">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Bienvenue, {session?.user?.name}
+            </h1>
+            <p className="mt-2 text-gray-600">
+              Votre compte est en attente d'approbation ou n'est pas encore associé à une entreprise.
+            </p>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  // Récupérer les statistiques depuis la base de données de l'entreprise
   const [
     totalRepairs,
     pendingRepairs,
@@ -24,15 +143,15 @@ export default async function Dashboard() {
     totalRevenue,
     thisMonthRevenue,
   ] = await Promise.all([
-    prisma.repair.count(),
-    prisma.repair.count({ where: { status: 'pending' } }),
-    prisma.repair.count({ where: { status: 'completed' } }),
-    prisma.customer.count(),
-    prisma.invoice.aggregate({
+    companyPrisma.repair.count(),
+    companyPrisma.repair.count({ where: { status: 'pending' } }),
+    companyPrisma.repair.count({ where: { status: 'completed' } }),
+    companyPrisma.customer.count(),
+    companyPrisma.invoice.aggregate({
       _sum: { finalAmount: true },
       where: { paymentStatus: 'paid' },
     }),
-    prisma.invoice.aggregate({
+    companyPrisma.invoice.aggregate({
       _sum: { finalAmount: true },
       where: {
         paymentStatus: 'paid',
@@ -79,7 +198,7 @@ export default async function Dashboard() {
   ]
 
   // Récupérer les dernières réparations
-  const recentRepairs = await prisma.repair.findMany({
+  const recentRepairs = await companyPrisma.repair.findMany({
     take: 5,
     orderBy: { createdAt: 'desc' },
     include: {

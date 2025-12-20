@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Bell, Database, Globe, Shield, Receipt } from 'lucide-react'
+import { Bell, Database, Globe, Shield, Receipt, Mail, MessageSquare } from 'lucide-react'
 
 export default function SettingsForm() {
   const [loading, setLoading] = useState(false)
@@ -9,6 +9,18 @@ export default function SettingsForm() {
   const [taxRate, setTaxRate] = useState('20.0')
   const [companyType, setCompanyType] = useState('auto-entrepreneur')
   const [loadingSettings, setLoadingSettings] = useState(true)
+  
+  // Paramètres de notifications
+  const [emailEnabled, setEmailEnabled] = useState(false)
+  const [smsEnabled, setSmsEnabled] = useState(false)
+  const [smtpHost, setSmtpHost] = useState('')
+  const [smtpPort, setSmtpPort] = useState('587')
+  const [smtpUser, setSmtpUser] = useState('')
+  const [smtpPassword, setSmtpPassword] = useState('')
+  const [smtpFrom, setSmtpFrom] = useState('')
+  const [smsProvider, setSmsProvider] = useState('twilio')
+  const [smsApiKey, setSmsApiKey] = useState('')
+  const [smsFrom, setSmsFrom] = useState('')
 
   // Types d'entreprises françaises avec leurs taux de TVA
   const companyTypes = [
@@ -40,6 +52,20 @@ export default function SettingsForm() {
             }
           }
         }
+        // Charger les paramètres de notifications
+        if (data.settings?.emailEnabled) {
+          setEmailEnabled(data.settings.emailEnabled === 'true')
+        }
+        if (data.settings?.smsEnabled) {
+          setSmsEnabled(data.settings.smsEnabled === 'true')
+        }
+        if (data.settings?.smtpHost) setSmtpHost(data.settings.smtpHost)
+        if (data.settings?.smtpPort) setSmtpPort(data.settings.smtpPort)
+        if (data.settings?.smtpUser) setSmtpUser(data.settings.smtpUser)
+        if (data.settings?.smtpFrom) setSmtpFrom(data.settings.smtpFrom)
+        if (data.settings?.smsProvider) setSmsProvider(data.settings.smsProvider)
+        if (data.settings?.smsApiKey) setSmsApiKey(data.settings.smsApiKey)
+        if (data.settings?.smsFrom) setSmsFrom(data.settings.smsFrom)
         setLoadingSettings(false)
       })
       .catch(err => {
@@ -67,6 +93,16 @@ export default function SettingsForm() {
         body: JSON.stringify({ 
           taxRate,
           companyType,
+          emailEnabled,
+          smsEnabled,
+          smtpHost,
+          smtpPort,
+          smtpUser,
+          smtpPassword: smtpPassword || undefined, // Ne pas envoyer si vide
+          smtpFrom,
+          smsProvider,
+          smsApiKey: smsApiKey || undefined, // Ne pas envoyer si vide
+          smsFrom,
         }),
       })
 
@@ -87,35 +123,186 @@ export default function SettingsForm() {
 
   return (
     <div className="space-y-6">
-      {/* Notifications */}
+      {/* Notifications Email */}
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex items-center mb-4">
-          <Bell className="h-5 w-5 mr-2 text-gray-400" />
-          <h2 className="text-lg font-medium text-gray-900">Notifications</h2>
+          <Mail className="h-5 w-5 mr-2 text-gray-400" />
+          <h2 className="text-lg font-medium text-gray-900">Notifications Email</h2>
         </div>
         
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-900">Notifications par email</p>
-              <p className="text-sm text-gray-500">Recevoir des emails pour les nouvelles réparations</p>
+              <p className="text-sm font-medium text-gray-900">Activer les notifications email</p>
+              <p className="text-sm text-gray-500">Envoyer automatiquement des emails aux clients à chaque étape</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" defaultChecked />
+              <input 
+                type="checkbox" 
+                className="sr-only peer" 
+                checked={emailEnabled}
+                onChange={(e) => setEmailEnabled(e.target.checked)}
+              />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
             </label>
           </div>
 
+          {emailEnabled && (
+            <div className="space-y-4 pt-4 border-t border-gray-200">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Serveur SMTP (host)
+                </label>
+                <input
+                  type="text"
+                  value={smtpHost}
+                  onChange={(e) => setSmtpHost(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="smtp.gmail.com"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Port SMTP
+                  </label>
+                  <input
+                    type="number"
+                    value={smtpPort}
+                    onChange={(e) => setSmtpPort(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="587"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email expéditeur
+                  </label>
+                  <input
+                    type="email"
+                    value={smtpFrom}
+                    onChange={(e) => setSmtpFrom(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="noreply@votre-entreprise.com"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Utilisateur SMTP
+                </label>
+                <input
+                  type="text"
+                  value={smtpUser}
+                  onChange={(e) => setSmtpUser(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="votre-email@gmail.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Mot de passe SMTP
+                </label>
+                <input
+                  type="password"
+                  value={smtpPassword}
+                  onChange={(e) => setSmtpPassword(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Mot de passe ou token d'application"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Pour Gmail, utilisez un mot de passe d'application
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Notifications SMS */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="flex items-center mb-4">
+          <MessageSquare className="h-5 w-5 mr-2 text-gray-400" />
+          <h2 className="text-lg font-medium text-gray-900">Notifications SMS</h2>
+        </div>
+        
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-900">Notifications de rappel</p>
-              <p className="text-sm text-gray-500">Rappels pour les réparations en attente</p>
+              <p className="text-sm font-medium text-gray-900">Activer les notifications SMS</p>
+              <p className="text-sm text-gray-500">Envoyer automatiquement des SMS aux clients à chaque étape</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" defaultChecked />
+              <input 
+                type="checkbox" 
+                className="sr-only peer" 
+                checked={smsEnabled}
+                onChange={(e) => setSmsEnabled(e.target.checked)}
+              />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
             </label>
           </div>
+
+          {smsEnabled && (
+            <div className="space-y-4 pt-4 border-t border-gray-200">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Fournisseur SMS
+                </label>
+                <select
+                  value={smsProvider}
+                  onChange={(e) => setSmsProvider(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="twilio">Twilio</option>
+                  <option value="ovh">OVH</option>
+                  <option value="custom">API personnalisée</option>
+                </select>
+              </div>
+              {smsProvider === 'custom' ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    URL de l'API personnalisée
+                  </label>
+                  <input
+                    type="url"
+                    value={smsApiKey}
+                    onChange={(e) => setSmsApiKey(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="https://api.example.com/sms"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    L'API doit accepter POST avec {"{"}"to": "numéro", "message": "texte", "from": "expéditeur"{"}"}
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {smsProvider === 'twilio' ? 'Account SID / API Key' : 'Clé API'}
+                  </label>
+                  <input
+                    type="text"
+                    value={smsApiKey}
+                    onChange={(e) => setSmsApiKey(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder={smsProvider === 'twilio' ? 'ACxxxxxxxxxxxxx' : 'Votre clé API'}
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Numéro expéditeur
+                </label>
+                <input
+                  type="text"
+                  value={smsFrom}
+                  onChange={(e) => setSmsFrom(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="+33612345678"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

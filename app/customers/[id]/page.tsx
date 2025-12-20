@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { getUserPrisma } from '@/lib/db-manager'
 import Navigation from '@/components/Navigation'
 import Link from 'next/link'
 import { ArrowLeft, Phone, Mail, MapPin, Wrench, Calendar } from 'lucide-react'
@@ -19,7 +19,13 @@ export default async function CustomerDetailPage({
     redirect('/login')
   }
 
-  const customer = await prisma.customer.findUnique({
+  // Récupérer la connexion Prisma de l'entreprise
+  const companyPrisma = await getUserPrisma()
+  if (!companyPrisma) {
+    redirect('/')
+  }
+
+  const customer = await companyPrisma.customer.findUnique({
     where: { id: params.id },
     include: {
       repairs: {

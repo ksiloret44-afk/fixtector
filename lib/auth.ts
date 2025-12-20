@@ -1,6 +1,6 @@
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import { prisma } from './prisma'
+import { getMainPrisma } from './db-manager'
 import bcrypt from 'bcryptjs'
 
 // Vérifier et afficher le secret au chargement
@@ -30,7 +30,8 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          const user = await prisma.user.findUnique({
+          const mainPrisma = getMainPrisma()
+          const user = await mainPrisma.user.findUnique({
             where: { email: credentials.email }
           })
 
@@ -52,7 +53,13 @@ export const authOptions: NextAuthOptions = {
           // Vérifier si l'utilisateur est approuvé
           if (!user.approved) {
             console.log('User not approved:', credentials.email)
-            return null // Retourner null pour que NextAuth affiche une erreur générique
+            throw new Error('Compte en attente d\'approbation')
+          }
+
+          // Vérifier si le compte est suspendu
+          if (user.suspended) {
+            console.log('User suspended:', credentials.email)
+            throw new Error('COMPTE_SUSPENDU')
           }
 
           return {

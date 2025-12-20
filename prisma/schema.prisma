@@ -10,6 +10,27 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?
+  phone       String?
+  address     String?
+  city        String?
+  postalCode  String?
+  siret       String?  // Numéro SIRET pour les entreprises françaises
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  customers   Customer[]
+  repairs     Repair[]
+  quotes      Quote[]
+  invoices    Invoice[]
+  parts       Part[]
+  settings    Settings[]
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -19,6 +40,8 @@ model User {
   approved  Boolean  @default(false) // Approuvé par un admin
   approvedBy String? // ID de l'admin qui a approuvé
   approvedAt DateTime?
+  companyId String?  // Lien vers l'entreprise de l'utilisateur
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   customerId String? @unique // Lien vers le Customer si c'est un client
   customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
@@ -39,6 +62,8 @@ model Customer {
   city        String?
   postalCode  String?
   notes       String?
+  companyId   String   // Lien vers l'entreprise
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -49,6 +74,7 @@ model Customer {
 
   @@index([email])
   @@index([phone])
+  @@index([companyId])
 }
 
 model Repair {
@@ -58,6 +84,8 @@ model Repair {
   customer    Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
   userId      String
   user        User        @relation(fields: [userId], references: [id])
+  companyId   String      // Lien vers l'entreprise
+  company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
   
   deviceType  String      // smartphone, tablet, laptop, etc.
   brand       String
@@ -80,6 +108,8 @@ model Repair {
   quote        Quote?
   invoice      Invoice?
   parts        RepairPart[]
+
+  @@index([companyId])
 }
 
 model Part {
@@ -92,6 +122,8 @@ model Part {
   stock       Int      @default(0)
   unitPrice   Float
   supplier    String?
+  companyId   String   // Lien vers l'entreprise
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -99,6 +131,7 @@ model Part {
 
   @@index([category])
   @@index([name])
+  @@index([companyId])
 }
 
 model RepairPart {
@@ -121,6 +154,8 @@ model Quote {
   customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   userId      String
   user        User     @relation(fields: [userId], references: [id])
+  companyId   String   // Lien vers l'entreprise
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   
   laborCost   Float
   partsCost   Float
@@ -131,6 +166,8 @@ model Quote {
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([companyId])
 }
 
 model Invoice {
@@ -142,6 +179,8 @@ model Invoice {
   customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   userId        String
   user          User     @relation(fields: [userId], references: [id])
+  companyId     String   // Lien vers l'entreprise
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   
   laborCost     Float
   partsCost     Float
@@ -157,14 +196,21 @@ model Invoice {
   notes         String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  @@index([companyId])
 }
 
 model Settings {
   id            String   @id @default(cuid())
-  key           String   @unique
+  key           String
   value         String
   description   String?
+  companyId     String?  // Lien vers l'entreprise (null pour les settings globales)
+  company       Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  @@unique([key, companyId])
+  @@index([companyId])
 }
 

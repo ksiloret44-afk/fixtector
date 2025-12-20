@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getUserPrisma, getMainPrisma } from '@/lib/db-manager'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { sendRepairStatusNotification } from '@/lib/notifications'
 
 export async function POST(request: Request) {
   try {
@@ -30,6 +31,15 @@ export async function POST(request: Request) {
       notes,
     } = body
 
+    // Récupérer la connexion Prisma de l'entreprise de l'utilisateur
+    const companyPrisma = await getUserPrisma()
+    if (!companyPrisma) {
+      return NextResponse.json(
+        { error: 'Vous devez être associé à une entreprise pour créer une réparation' },
+        { status: 403 }
+      )
+    }
+
     // Créer ou récupérer le client
     let finalCustomerId = customerId
 
@@ -41,7 +51,7 @@ export async function POST(request: Request) {
         )
       }
 
-      const customer = await prisma.customer.create({
+      const customer = await companyPrisma.customer.create({
         data: {
           firstName: customerFirstName,
           lastName: customerLastName,
@@ -51,6 +61,18 @@ export async function POST(request: Request) {
       })
 
       finalCustomerId = customer.id
+    } else {
+      // Vérifier que le client existe dans cette base
+      const existingCustomer = await companyPrisma.customer.findUnique({
+        where: { id: finalCustomerId },
+      })
+
+      if (!existingCustomer) {
+        return NextResponse.json(
+          { error: 'Ce client n\'appartient pas à votre entreprise' },
+          { status: 403 }
+        )
+      }
     }
 
     // Construire la description du problème avec le type de réparation
@@ -70,7 +92,7 @@ export async function POST(request: Request) {
     }
 
     // Créer la réparation
-    const repair = await prisma.repair.create({
+    const repair = await companyPrisma.repair.create({
       data: {
         customerId: finalCustomerId,
         userId,
@@ -88,6 +110,34 @@ export async function POST(request: Request) {
         customer: true,
       },
     })
+
+    // Envoyer une notification de création
+    try {
+      const mainPrisma = getMainPrisma()
+      const user = await mainPrisma.user.findUnique({
+        where: { id: userId },
+        include: { company: true },
+      })
+
+      await sendRepairStatusNotification(companyPrisma, {
+        customerName: `${repair.customer.firstName} ${repair.customer.lastName}`,
+        customerEmail: repair.customer.email || undefined,
+        customerPhone: repair.customer.phone,
+        repairId: repair.id,
+        ticketNumber: repair.ticketNumber,
+        deviceType: repair.deviceType,
+        brand: repair.brand,
+        model: repair.model,
+        status: 'pending',
+        estimatedCost: repair.estimatedCost || undefined,
+        estimatedTime: repair.estimatedTime || undefined,
+        notes: repair.notes || undefined,
+        companyName: user?.company?.name,
+      })
+    } catch (error) {
+      // Ne pas faire échouer la requête si la notification échoue
+      console.error('Erreur lors de l\'envoi de la notification:', error)
+    }
 
     return NextResponse.json({ repair }, { status: 201 })
   } catch (error) {

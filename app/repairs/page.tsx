@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { getUserPrisma } from '@/lib/db-manager'
 import Navigation from '@/components/Navigation'
 import Link from 'next/link'
 import { Plus, Wrench, Search } from 'lucide-react'
@@ -32,21 +32,26 @@ export default async function RepairsPage({
     ]
   }
 
-  const repairs = await prisma.repair.findMany({
+  // Récupérer la connexion Prisma de l'entreprise
+  const companyPrisma = await getUserPrisma()
+  if (!companyPrisma) {
+    redirect('/')
+  }
+
+  const repairs = await companyPrisma.repair.findMany({
     where,
     include: {
       customer: true,
-      user: true,
     },
     orderBy: { createdAt: 'desc' },
   })
 
   const statusCounts = await Promise.all([
-    prisma.repair.count({ where: { status: 'pending' } }),
-    prisma.repair.count({ where: { status: 'in_progress' } }),
-    prisma.repair.count({ where: { status: 'waiting_parts' } }),
-    prisma.repair.count({ where: { status: 'completed' } }),
-    prisma.repair.count({ where: { status: 'cancelled' } }),
+    companyPrisma.repair.count({ where: { status: 'pending' } }),
+    companyPrisma.repair.count({ where: { status: 'in_progress' } }),
+    companyPrisma.repair.count({ where: { status: 'waiting_parts' } }),
+    companyPrisma.repair.count({ where: { status: 'completed' } }),
+    companyPrisma.repair.count({ where: { status: 'cancelled' } }),
   ])
 
   return (

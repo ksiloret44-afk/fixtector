@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getUserPrisma } from '@/lib/db-manager'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
@@ -31,8 +31,17 @@ export async function POST(request: Request) {
       )
     }
 
+    // Récupérer la connexion Prisma de l'entreprise
+    const companyPrisma = await getUserPrisma()
+    if (!companyPrisma) {
+      return NextResponse.json(
+        { error: 'Vous devez être associé à une entreprise' },
+        { status: 403 }
+      )
+    }
+
     // Vérifier si une facture existe déjà pour cette réparation
-    const existingInvoice = await prisma.invoice.findUnique({
+    const existingInvoice = await companyPrisma.invoice.findUnique({
       where: { repairId },
     })
 
@@ -44,11 +53,11 @@ export async function POST(request: Request) {
     }
 
     // Créer la facture
-    const invoice = await prisma.invoice.create({
+    const invoice = await companyPrisma.invoice.create({
       data: {
         repairId,
         customerId,
-        userId,
+        userId: userId || (session.user as any).id,
         laborCost: parseFloat(laborCost),
         partsCost: parseFloat(partsCost),
         totalCost: parseFloat(totalCost),

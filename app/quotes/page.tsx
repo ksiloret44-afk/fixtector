@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { getUserPrisma } from '@/lib/db-manager'
 import Navigation from '@/components/Navigation'
 import Link from 'next/link'
 import { FileText, Calendar, DollarSign, CheckCircle, XCircle, Clock } from 'lucide-react'
@@ -20,6 +20,12 @@ export default async function QuotesPage({
     redirect('/login')
   }
 
+  // Récupérer la connexion Prisma de l'entreprise
+  const companyPrisma = await getUserPrisma()
+  if (!companyPrisma) {
+    redirect('/')
+  }
+
   const statusFilter = searchParams.status || 'all'
 
   const where: any = {}
@@ -34,7 +40,7 @@ export default async function QuotesPage({
     where.validUntil = { lt: new Date() }
   }
 
-  const quotes = await prisma.quote.findMany({
+  const quotes = await companyPrisma.quote.findMany({
     where,
     include: {
       customer: true,
@@ -57,10 +63,10 @@ export default async function QuotesPage({
     : quotes
 
   const stats = {
-    total: await prisma.quote.count(),
-    pending: await prisma.quote.count({ where: { status: 'pending' } }),
-    accepted: await prisma.quote.count({ where: { status: 'accepted' } }),
-    rejected: await prisma.quote.count({ where: { status: 'rejected' } }),
+    total: await companyPrisma.quote.count(),
+    pending: await companyPrisma.quote.count({ where: { status: 'pending' } }),
+    accepted: await companyPrisma.quote.count({ where: { status: 'accepted' } }),
+    rejected: await companyPrisma.quote.count({ where: { status: 'rejected' } }),
   }
 
   const getStatusBadge = (quote: any) => {

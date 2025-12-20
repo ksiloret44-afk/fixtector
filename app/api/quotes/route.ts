@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getUserPrisma } from '@/lib/db-manager'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
@@ -22,24 +22,33 @@ export async function POST(request: Request) {
       notes,
     } = body
 
+    // Récupérer la connexion Prisma de l'entreprise
+    const companyPrisma = await getUserPrisma()
+    if (!companyPrisma) {
+      return NextResponse.json(
+        { error: 'Vous devez être associé à une entreprise' },
+        { status: 403 }
+      )
+    }
+
     // Vérifier que la réparation n'a pas déjà un devis
     // Si un devis existe, on le supprime pour le remplacer (régénération)
-    const existingQuote = await prisma.quote.findUnique({
+    const existingQuote = await companyPrisma.quote.findUnique({
       where: { repairId },
     })
 
     if (existingQuote) {
       // Supprimer l'ancien devis pour le remplacer
-      await prisma.quote.delete({
+      await companyPrisma.quote.delete({
         where: { id: existingQuote.id },
       })
     }
 
-    const quote = await prisma.quote.create({
+    const quote = await companyPrisma.quote.create({
       data: {
         repairId,
         customerId,
-        userId,
+        userId: userId || (session.user as any).id,
         laborCost: parseFloat(laborCost),
         partsCost: parseFloat(partsCost),
         totalCost: parseFloat(totalCost),

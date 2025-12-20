@@ -1,0 +1,44 @@
+// Schéma pour la base de données principale (utilisateurs et entreprises)
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client-main"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL_MAIN")
+}
+
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?
+  phone       String?
+  address     String?
+  city        String?
+  postalCode  String?
+  siret       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("user")
+  approved  Boolean  @default(false)
+  suspended Boolean  @default(false)
+  suspendedAt DateTime?
+  suspendedBy String?
+  approvedBy String?
+  approvedAt DateTime?
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+

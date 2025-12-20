@@ -8,7 +8,7 @@ async function changeRole() {
 
   if (!email) {
     console.log('Usage: npx tsx scripts/change-role.ts <email> [role]')
-    console.log('Exemple: npx tsx scripts/change-role.ts rpphone@ik.me admin')
+    console.log('Exemple: npx tsx scripts/change-role.ts user@example.com admin')
     process.exit(1)
   }
 

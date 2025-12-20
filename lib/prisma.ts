@@ -1,10 +1,7 @@
-import { PrismaClient } from '@prisma/client'
+// Ce fichier est maintenant obsolète
+// Utilisez getMainPrisma() ou getUserPrisma() depuis lib/db-manager.ts
+import { getMainPrisma } from './db-manager'
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
-}
-
-export const prisma = globalForPrisma.prisma ?? new PrismaClient()
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+// Export pour compatibilité avec l'ancien code (sera progressivement remplacé)
+export const prisma = getMainPrisma()
 

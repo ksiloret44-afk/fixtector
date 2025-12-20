@@ -1,81 +1,80 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient as MainPrismaClient } from '../node_modules/.prisma/client-main'
+import { readFileSync } from 'fs'
+import { resolve } from 'path'
 import bcrypt from 'bcryptjs'
+import path from 'path'
 
-const prisma = new PrismaClient()
+// Charger les variables d'environnement depuis .env.local
+try {
+  const envFile = readFileSync(resolve(process.cwd(), '.env.local'), 'utf-8')
+  envFile.split('\n').forEach(line => {
+    const match = line.match(/^([^=]+)=(.*)$/)
+    if (match) {
+      const key = match[1].trim()
+      const value = match[2].trim().replace(/^["']|["']$/g, '')
+      process.env[key] = value
+    }
+  })
+} catch (error) {
+  console.error('Erreur lors du chargement de .env.local:', error)
+}
 
-async function testAuth() {
-  console.log('🔍 Test d\'authentification...\n')
+const MAIN_DB_PATH = path.join(process.cwd(), 'prisma', 'main.db')
+const dbUrl = `file:${MAIN_DB_PATH}`
 
+console.log('🔍 Test de l\'authentification...')
+console.log(`   Chemin de la base: ${MAIN_DB_PATH}`)
+console.log(`   URL de la base: ${dbUrl}`)
+console.log(`   Base existe: ${require('fs').existsSync(MAIN_DB_PATH) ? '✅' : '❌'}\n`)
+
+const mainPrisma = new MainPrismaClient({
+  datasources: {
+    db: {
+      url: dbUrl,
+    },
+  },
+})
+
+async function testAuth(email: string, password: string) {
   try {
-    // 1. Vérifier que l'utilisateur existe
-    console.log('1. Vérification de l\'utilisateur...')
-    const user = await prisma.user.findUnique({
-      where: { email: 'admin@rpphone.com' }
+    console.log(`🔐 Test de connexion pour: ${email}`)
+    
+    const user = await mainPrisma.user.findUnique({
+      where: { email }
     })
 
     if (!user) {
-      console.log('❌ Utilisateur non trouvé!')
-      console.log('   Exécutez: npm run db:init')
-      return
+      console.log('❌ Utilisateur non trouvé')
+      return false
     }
 
-    console.log('✅ Utilisateur trouvé:')
-    console.log(`   Email: ${user.email}`)
-    console.log(`   Nom: ${user.name}`)
-    console.log(`   Hash du mot de passe: ${user.password.substring(0, 20)}...`)
+    console.log(`✅ Utilisateur trouvé: ${user.name}`)
+    console.log(`   Rôle: ${user.role}`)
+    console.log(`   Approuvé: ${user.approved ? '✅' : '❌'}`)
 
-    // 2. Tester le hash du mot de passe
-    console.log('\n2. Test du mot de passe...')
-    const testPassword = 'admin123'
-    const isValid = await bcrypt.compare(testPassword, user.password)
-    
-    if (isValid) {
-      console.log('✅ Le mot de passe "admin123" est valide!')
+    const isValid = await bcrypt.compare(password, user.password)
+    console.log(`   Mot de passe: ${isValid ? '✅ VALIDE' : '❌ INVALIDE'}`)
+
+    if (isValid && user.approved) {
+      console.log('\n✅ Authentification réussie!')
+      return true
     } else {
-      console.log('❌ Le mot de passe "admin123" n\'est PAS valide!')
-      console.log('   Le hash ne correspond pas au mot de passe.')
+      console.log('\n❌ Authentification échouée')
+      return false
     }
-
-    // 3. Vérifier les variables d'environnement
-    console.log('\n3. Vérification des variables d\'environnement...')
-    const dbUrl = process.env.DATABASE_URL
-    const nextAuthSecret = process.env.NEXTAUTH_SECRET
-    const nextAuthUrl = process.env.NEXTAUTH_URL
-
-    console.log(`   DATABASE_URL: ${dbUrl ? '✅ Défini' : '❌ Non défini'}`)
-    console.log(`   NEXTAUTH_SECRET: ${nextAuthSecret ? '✅ Défini' : '❌ Non défini'}`)
-    console.log(`   NEXTAUTH_URL: ${nextAuthUrl ? '✅ Défini' : '❌ Non défini'}`)
-
-    if (!nextAuthSecret) {
-      console.log('\n⚠️  NEXTAUTH_SECRET n\'est pas défini!')
-      console.log('   Créez un fichier .env.local avec:')
-      console.log('   NEXTAUTH_SECRET="votre-secret-ici"')
-    }
-
-    // 4. Test de connexion simulée
-    console.log('\n4. Simulation de la connexion...')
-    if (isValid && nextAuthSecret) {
-      console.log('✅ Tous les tests sont passés!')
-      console.log('   La connexion devrait fonctionner.')
-      console.log('\n   Essayez de vous connecter avec:')
-      console.log('   Email: admin@rpphone.com')
-      console.log('   Mot de passe: admin123')
-    } else {
-      console.log('❌ Certains tests ont échoué.')
-      if (!isValid) {
-        console.log('   - Le mot de passe ne correspond pas')
-      }
-      if (!nextAuthSecret) {
-        console.log('   - NEXTAUTH_SECRET n\'est pas défini')
-      }
-    }
-
-  } catch (error) {
-    console.error('\n❌ Erreur lors du test:', error)
-  } finally {
-    await prisma.$disconnect()
+  } catch (error: any) {
+    console.error('❌ Erreur:', error.message)
+    return false
   }
 }
 
-testAuth()
+async function main() {
+  const email = process.argv[2] || 'rpphone@ik.me'
+  const password = process.argv[3] || 'test123'
 
+  await testAuth(email, password)
+  
+  await mainPrisma.$disconnect()
+}
+
+main()

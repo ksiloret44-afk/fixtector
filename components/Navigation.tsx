@@ -16,6 +16,7 @@ import {
   User,
   Settings,
   Shield,
+  UserCog,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -38,6 +39,7 @@ export default function Navigation() {
         { href: '/parts', label: 'Stock', icon: Package },
         { href: '/quotes', label: 'Devis', icon: Receipt },
         { href: '/invoices', label: 'Factures', icon: FileText },
+        { href: '/team', label: 'Collaborateurs', icon: UserCog },
         { href: '/admin', label: 'Administration', icon: Shield, adminOnly: true },
       ].filter(item => !item.adminOnly || isAdmin)
 
@@ -55,7 +57,7 @@ export default function Navigation() {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link href={isClient ? "/client" : "/"} className="text-2xl font-bold text-primary-600">
-                RPPHONE
+                FixTector
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">

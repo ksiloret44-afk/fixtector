@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { getUserPrisma } from '@/lib/db-manager'
 import Navigation from '@/components/Navigation'
 import { FileText, CheckCircle, XCircle, Clock, DollarSign } from 'lucide-react'
 import { format } from 'date-fns'
@@ -23,6 +23,12 @@ export default async function InvoicesPage({
     redirect('/login')
   }
 
+  // Récupérer la connexion Prisma de l'entreprise
+  const companyPrisma = await getUserPrisma()
+  if (!companyPrisma) {
+    redirect('/')
+  }
+
   const statusFilter = searchParams.status || 'all'
 
   const where: any = {}
@@ -34,7 +40,7 @@ export default async function InvoicesPage({
     where.paymentStatus = 'partial'
   }
 
-  const invoices = await prisma.invoice.findMany({
+  const invoices = await companyPrisma.invoice.findMany({
     where,
     include: {
       customer: true,
@@ -60,15 +66,15 @@ export default async function InvoicesPage({
     totalUnpaidAmount,
     totalPaidAmount,
   ] = await Promise.all([
-    prisma.invoice.count(),
-    prisma.invoice.count({ where: { paymentStatus: 'unpaid' } }),
-    prisma.invoice.count({ where: { paymentStatus: 'paid' } }),
-    prisma.invoice.count({ where: { paymentStatus: 'partial' } }),
-    prisma.invoice.aggregate({
+    companyPrisma.invoice.count(),
+    companyPrisma.invoice.count({ where: { paymentStatus: 'unpaid' } }),
+    companyPrisma.invoice.count({ where: { paymentStatus: 'paid' } }),
+    companyPrisma.invoice.count({ where: { paymentStatus: 'partial' } }),
+    companyPrisma.invoice.aggregate({
       _sum: { finalAmount: true },
       where: { paymentStatus: 'unpaid' },
     }),
-    prisma.invoice.aggregate({
+    companyPrisma.invoice.aggregate({
       _sum: { finalAmount: true },
       where: { paymentStatus: 'paid' },
     }),

@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { getUserPrisma } from '@/lib/db-manager'
 import Navigation from '@/components/Navigation'
 import Link from 'next/link'
 import { Plus, Package, AlertCircle } from 'lucide-react'
@@ -13,7 +13,13 @@ export default async function PartsPage() {
     redirect('/login')
   }
 
-  const parts = await prisma.part.findMany({
+  // Récupérer la connexion Prisma de l'entreprise
+  const companyPrisma = await getUserPrisma()
+  if (!companyPrisma) {
+    redirect('/')
+  }
+
+  const parts = await companyPrisma.part.findMany({
     orderBy: { name: 'asc' },
   })
 

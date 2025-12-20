@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getMainPrisma } from '@/lib/db-manager'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
@@ -20,7 +20,8 @@ export async function GET(request: Request) {
       where.approved = true
     }
 
-    const users = await prisma.user.findMany({
+    const mainPrisma = getMainPrisma()
+    const users = await mainPrisma.user.findMany({
       where,
       select: {
         id: true,
@@ -28,6 +29,7 @@ export async function GET(request: Request) {
         email: true,
         role: true,
         approved: true,
+        suspended: true,
         createdAt: true,
         approvedAt: true,
       },

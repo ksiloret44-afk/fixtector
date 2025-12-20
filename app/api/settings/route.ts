@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getUserPrisma } from '@/lib/db-manager'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
@@ -10,7 +10,15 @@ export async function GET() {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    const settings = await prisma.settings.findMany()
+    const companyPrisma = await getUserPrisma()
+    if (!companyPrisma) {
+      return NextResponse.json(
+        { error: 'Vous devez être associé à une entreprise' },
+        { status: 403 }
+      )
+    }
+
+    const settings = await companyPrisma.settings.findMany()
     const settingsMap: Record<string, string> = {}
     
     settings.forEach(setting => {
@@ -35,29 +43,51 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { taxRate, companyType } = body
+    const { 
+      taxRate, 
+      companyType,
+      emailEnabled,
+      smsEnabled,
+      smtpHost,
+      smtpPort,
+      smtpUser,
+      smtpPassword,
+      smtpFrom,
+      smsProvider,
+      smsApiKey,
+      smsFrom,
+    } = body
 
-    if (taxRate === undefined || isNaN(parseFloat(taxRate))) {
+    const companyPrisma = await getUserPrisma()
+    if (!companyPrisma) {
       return NextResponse.json(
-        { error: 'Taux de TVA invalide' },
-        { status: 400 }
+        { error: 'Vous devez être associé à une entreprise' },
+        { status: 403 }
       )
     }
 
-    // Créer ou mettre à jour le paramètre TVA
-    await prisma.settings.upsert({
-      where: { key: 'taxRate' },
-      update: { value: taxRate.toString() },
-      create: {
-        key: 'taxRate',
-        value: taxRate.toString(),
-        description: 'Taux de TVA en pourcentage',
-      },
-    })
+    // Mettre à jour les paramètres TVA
+    if (taxRate !== undefined) {
+      if (isNaN(parseFloat(taxRate))) {
+        return NextResponse.json(
+          { error: 'Taux de TVA invalide' },
+          { status: 400 }
+        )
+      }
+      await companyPrisma.settings.upsert({
+        where: { key: 'taxRate' },
+        update: { value: taxRate.toString() },
+        create: {
+          key: 'taxRate',
+          value: taxRate.toString(),
+          description: 'Taux de TVA en pourcentage',
+        },
+      })
+    }
 
-    // Créer ou mettre à jour le type d'entreprise
+    // Mettre à jour le type d'entreprise
     if (companyType) {
-      await prisma.settings.upsert({
+      await companyPrisma.settings.upsert({
         where: { key: 'companyType' },
         update: { value: companyType },
         create: {
@@ -66,6 +96,34 @@ export async function POST(request: Request) {
           description: 'Type d\'entreprise française',
         },
       })
+    }
+
+    // Mettre à jour les paramètres de notifications
+    const notificationSettings = [
+      { key: 'emailEnabled', value: emailEnabled !== undefined ? (emailEnabled ? 'true' : 'false') : undefined },
+      { key: 'smsEnabled', value: smsEnabled !== undefined ? (smsEnabled ? 'true' : 'false') : undefined },
+      { key: 'smtpHost', value: smtpHost },
+      { key: 'smtpPort', value: smtpPort?.toString() },
+      { key: 'smtpUser', value: smtpUser },
+      { key: 'smtpPassword', value: smtpPassword },
+      { key: 'smtpFrom', value: smtpFrom },
+      { key: 'smsProvider', value: smsProvider },
+      { key: 'smsApiKey', value: smsApiKey },
+      { key: 'smsFrom', value: smsFrom },
+    ]
+
+    for (const setting of notificationSettings) {
+      if (setting.value !== undefined) {
+        await companyPrisma.settings.upsert({
+          where: { key: setting.key },
+          update: { value: setting.value },
+          create: {
+            key: setting.key,
+            value: setting.value,
+            description: `Paramètre de notification: ${setting.key}`,
+          },
+        })
+      }
     }
 
     return NextResponse.json({ success: true })
