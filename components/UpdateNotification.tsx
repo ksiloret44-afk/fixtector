@@ -13,16 +13,26 @@ export default function UpdateNotification() {
     // Vérifier si la notification a été masquée dans le localStorage
     const dismissedVersion = localStorage.getItem('updateNotificationDismissed')
     
-    // Vérifier les mises à jour
-    fetch('/api/updates/check')
-      .then(res => res.json())
-      .then(data => {
-        if (data.updateAvailable && dismissedVersion !== data.latestVersion) {
-          setUpdateAvailable(true)
-          setLatestVersion(data.latestVersion)
-        }
-      })
-      .catch(err => console.error('Erreur vérification mise à jour:', err))
+    // Vérifier les mises à jour toutes les 5 minutes
+    const checkUpdates = () => {
+      fetch('/api/updates/check')
+        .then(res => res.json())
+        .then(data => {
+          if (data.updateAvailable && dismissedVersion !== data.latestVersion) {
+            setUpdateAvailable(true)
+            setLatestVersion(data.latestVersion)
+          }
+        })
+        .catch(err => console.error('Erreur vérification mise à jour:', err))
+    }
+    
+    // Vérifier immédiatement
+    checkUpdates()
+    
+    // Vérifier toutes les 5 minutes
+    const interval = setInterval(checkUpdates, 5 * 60 * 1000)
+    
+    return () => clearInterval(interval)
   }, [])
 
   const handleDismiss = () => {
