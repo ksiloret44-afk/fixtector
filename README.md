@@ -220,11 +220,11 @@ npm run dev
 
 ### Compte par défaut
 
-Si vous avez exécuté `npm run db:init`, vous pouvez vous connecter avec :
-- **Email:** admin@fixtector.com
+Lors de l'installation automatique ou après avoir exécuté `npm run db:init`, un compte administrateur est créé automatiquement :
+- **Email:** admin@admin.com
 - **Mot de passe:** admin123
 
-⚠️ **Important:** Changez ce mot de passe après la première connexion !
+⚠️ **Important:** À la première connexion, vous serez automatiquement redirigé vers une page pour changer votre email et mot de passe. Cette étape est obligatoire pour des raisons de sécurité.
 
 ## Structure du projet
 
