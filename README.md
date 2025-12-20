@@ -267,12 +267,24 @@ sudo ./install.sh
 ```
 
 **Configuration minimale requise :**
-- CPU : 2 cœurs
-- RAM : 4 GB
-- Stockage : 50 GB SSD
-- OS : Ubuntu 20.04+, Debian 11+, CentOS 8+
+- **CPU** : 2 cœurs
+- **RAM** : 4 GB
+- **Stockage** : 50 GB SSD
+- **Bande passante** : 100 Mbps
+- **OS** : Ubuntu 20.04+, Debian 11+, CentOS 8+, Rocky Linux, AlmaLinux
+- **Coût estimé** : ~5-10€/mois
 
-Voir `VPS_REQUIREMENTS.md` pour plus de détails.
+**Configuration recommandée (production) :**
+- **CPU** : 4 cœurs
+- **RAM** : 8 GB
+- **Stockage** : 100 GB SSD (avec sauvegardes automatiques)
+- **Bande passante** : 1 Gbps
+- **OS** : Ubuntu 22.04 LTS ou Debian 12
+- **Coût estimé** : ~15-25€/mois
+
+> 💡 **Note importante** : Pour une utilisation avec plusieurs entreprises et beaucoup de données, privilégiez la configuration recommandée. La configuration minimale convient pour tester ou pour une petite activité.
+
+Voir `VPS_REQUIREMENTS.md` pour plus de détails techniques.
 
 ### Déploiement sur plateformes cloud
 
