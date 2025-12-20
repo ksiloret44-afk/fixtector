@@ -140,11 +140,11 @@ Une fois l'installation terminée :
    - Avec domaine : `https://votre-domaine.com`
    - Sans domaine : `http://VOTRE_IP:3000`
 
-2. **Créer un compte administrateur** :
-   ```bash
-   cd /home/fixtector/fixtector
-   sudo -u fixtector npx tsx scripts/init-db.ts
-   ```
+2. **Première connexion** :
+   - Un compte administrateur est créé automatiquement
+   - **Email:** admin@admin.com
+   - **Mot de passe:** admin123
+   - ⚠️ **Important:** Vous serez automatiquement redirigé vers une page pour changer votre email et mot de passe à la première connexion (obligatoire pour des raisons de sécurité)
 
 3. **Vérifier le statut** :
    ```bash
