@@ -33,28 +33,118 @@ Application SaaS complète pour la gestion d'une activité de réparation de mat
 
 ## Installation
 
-### 🚀 Installation automatique sur VPS Linux (Recommandé)
+### 🚀 Installation automatisée sur VPS Linux (Recommandé)
 
-Pour une installation complète et automatique sur un serveur Linux :
+Le script d'installation automatique configure tout ce dont vous avez besoin en une seule commande.
+
+#### Prérequis
+
+- Serveur Linux (Ubuntu 20.04+, Debian 11+, CentOS 8+, Rocky Linux, AlmaLinux)
+- Accès root ou sudo
+- Connexion Internet
+- Domaine configuré (optionnel, pour SSL)
+
+#### Installation en 3 étapes
 
 ```bash
-# Télécharger le script d'installation
+# 1. Télécharger le script d'installation
 wget https://raw.githubusercontent.com/ksiloret44-afk/fixtector/main/install.sh
+
+# 2. Rendre le script exécutable
 chmod +x install.sh
+
+# 3. Exécuter l'installation (avec sudo)
 sudo ./install.sh
 ```
 
-Le script installe automatiquement :
-- ✅ Node.js 20.x LTS
-- ✅ Toutes les dépendances système
-- ✅ L'application et ses dépendances npm
-- ✅ Prisma et les bases de données
-- ✅ PM2 pour la gestion des processus
-- ✅ Nginx ou Apache comme reverse proxy
-- ✅ SSL avec Let's Encrypt (optionnel)
-- ✅ Scripts de sauvegarde automatique
+#### Ce que fait le script
 
-**Voir `INSTALL.md` pour plus de détails.**
+Le script `install.sh` effectue automatiquement :
+
+1. **Détection du système** : Détecte votre distribution Linux
+2. **Installation des dépendances** :
+   - Node.js 20.x LTS
+   - npm et Git
+   - Nginx ou Apache (détection automatique)
+   - PM2 (gestionnaire de processus)
+3. **Configuration de l'application** :
+   - Création de l'utilisateur `fixtector`
+   - Installation de l'application
+   - Configuration de Prisma et bases de données
+   - Génération des variables d'environnement
+4. **Build et démarrage** :
+   - Compilation de l'application
+   - Démarrage avec PM2
+   - Configuration du démarrage automatique
+5. **Configuration du serveur web** :
+   - Détection automatique d'Apache et/ou Nginx
+   - Configuration du reverse proxy
+   - Support des deux serveurs en symbiose
+6. **SSL/HTTPS** (si domaine fourni) :
+   - Installation de Certbot
+   - Génération automatique du certificat Let's Encrypt
+   - Configuration HTTPS
+7. **Sécurité** :
+   - Configuration du firewall
+   - Scripts de sauvegarde automatique
+
+#### Pendant l'installation
+
+Le script vous demandera :
+- **Domaine** (optionnel) : Votre nom de domaine (ex: `fixtector.example.com`)
+  - Laissez vide pour utiliser `localhost`
+- **Email** (optionnel) : Votre email pour Let's Encrypt SSL
+  - Laissez vide si vous ne voulez pas configurer SSL maintenant
+
+#### Exemple d'utilisation
+
+```bash
+# Installation avec domaine et SSL
+sudo ./install.sh
+# Domaine: fixtector.example.com
+# Email: admin@example.com
+
+# Installation locale (sans domaine)
+sudo ./install.sh
+# Domaine: (appuyez sur Entrée)
+# Email: (appuyez sur Entrée)
+```
+
+#### Après l'installation
+
+Une fois l'installation terminée :
+
+1. **Accéder à l'application** :
+   - Avec domaine : `https://votre-domaine.com`
+   - Sans domaine : `http://VOTRE_IP:3000`
+
+2. **Créer un compte administrateur** :
+   ```bash
+   cd /home/fixtector/fixtector
+   sudo -u fixtector npx tsx scripts/init-db.ts
+   ```
+
+3. **Vérifier le statut** :
+   ```bash
+   sudo -u fixtector pm2 status
+   sudo /home/fixtector/fixtector/health-check.sh
+   ```
+
+#### Scripts disponibles après installation
+
+- **`/home/fixtector/fixtector/update.sh`** : Mise à jour automatique
+- **`/home/fixtector/fixtector/health-check.sh`** : Vérification de santé
+- **`/home/fixtector/fixtector/backup.sh`** : Sauvegarde manuelle
+
+#### Mise à jour
+
+Pour mettre à jour vers une nouvelle version :
+
+```bash
+sudo /home/fixtector/fixtector/update.sh
+```
+
+**Voir `INSTALL.md` pour le guide complet et `QUICK_START.md` pour un démarrage rapide.**
 
 ### 💻 Installation locale (Développement)
 
