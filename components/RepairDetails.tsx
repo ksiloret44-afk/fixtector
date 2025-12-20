@@ -14,6 +14,8 @@ import {
   Edit,
   CheckCircle,
   XCircle,
+  Star,
+  MessageSquare,
 } from 'lucide-react'
 import Link from 'next/link'
 import RepairPhotos from './RepairPhotos'
@@ -28,6 +30,8 @@ export default function RepairDetails({ repair, isClient = false }: RepairDetail
   const [status, setStatus] = useState(repair.status)
   const [loading, setLoading] = useState(false)
   const [taxRate, setTaxRate] = useState(20.0)
+  const [requestingReview, setRequestingReview] = useState(false)
+  const [reviewUrl, setReviewUrl] = useState<string | null>(null)
 
   // Récupérer le taux de TVA depuis les paramètres
   useEffect(() => {
@@ -64,6 +68,39 @@ export default function RepairDetails({ repair, isClient = false }: RepairDetail
       console.error('Erreur:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const requestReview = async () => {
+    setRequestingReview(true)
+    try {
+      const response = await fetch('/api/reviews/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          repairId: repair.id,
+          customerId: repair.customerId,
+        }),
+      })
+
+      const data = await response.json()
+      if (response.ok) {
+        setReviewUrl(data.reviewUrl)
+        // Copier le lien dans le presse-papier
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(data.reviewUrl)
+          alert('Lien de demande d\'avis copié dans le presse-papier ! Vous pouvez l\'envoyer au client.')
+        } else {
+          alert(`Lien de demande d'avis : ${data.reviewUrl}`)
+        }
+      } else {
+        alert(data.error || 'Erreur lors de la création de la demande d\'avis')
+      }
+    } catch (err) {
+      console.error('Erreur:', err)
+      alert('Erreur lors de la création de la demande d\'avis')
+    } finally {
+      setRequestingReview(false)
     }
   }
 
@@ -198,6 +235,16 @@ export default function RepairDetails({ repair, isClient = false }: RepairDetail
               >
                 <XCircle className="h-4 w-4 mr-2" />
                 Annuler
+              </button>
+            )}
+            {status === 'completed' && (
+              <button
+                onClick={requestReview}
+                disabled={requestingReview}
+                className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
+              >
+                <Star className="h-4 w-4 mr-2" />
+                {requestingReview ? 'Génération...' : 'Demander un avis'}
               </button>
             )}
           </div>

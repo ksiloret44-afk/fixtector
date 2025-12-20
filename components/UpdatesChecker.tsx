@@ -68,8 +68,8 @@ export default function UpdatesChecker() {
     } catch (error) {
       console.error('Erreur lors de la vérification:', error)
       setUpdateInfo({
-        currentVersion: '1.1.2',
-        latestVersion: '1.1.2',
+        currentVersion: '1.1.3',
+        latestVersion: '1.1.3',
         updateAvailable: false,
         error: 'Impossible de vérifier les mises à jour',
       })

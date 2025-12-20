@@ -21,8 +21,11 @@ import {
   Calendar,
   Download,
   ChevronDown,
+  Star,
+  MessageSquare,
 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
+import TrialCountdown from './TrialCountdown'
 
 export default function Navigation() {
   const pathname = usePathname()
@@ -54,6 +57,7 @@ export default function Navigation() {
   const navItems = isClient
     ? [
         { href: '/client', label: 'Mon espace', icon: LayoutDashboard },
+        { href: '/client/reviews', label: 'Laisser un avis', icon: Star },
       ]
     : [
         { href: '/', label: 'Tableau de bord', icon: LayoutDashboard },
@@ -66,13 +70,20 @@ export default function Navigation() {
         { href: '/appointments', label: 'Rendez-vous', icon: Calendar },
       ]
   
-  const subMenuItems = [
-    { href: '/profile', label: 'Profil', icon: User },
-    { href: '/team', label: 'Collaborateurs', icon: UserCog },
-    { href: '/settings', label: 'Paramètres', icon: Settings },
-    { href: '/updates', label: 'Mises à jour', icon: Download },
-    { href: '/admin', label: 'Administration', icon: Shield, adminOnly: true },
-  ].filter(item => !item.adminOnly || isAdmin)
+      const subMenuItems = [
+        { href: '/profile', label: 'Profil', icon: User },
+        { href: '/team', label: 'Collaborateurs', icon: UserCog },
+        { href: '/reviews', label: 'Avis clients', icon: Star },
+        { href: '/company-review', label: 'Laisser un avis', icon: Star, hideForAdmin: true },
+        { href: '/chatbot', label: 'Chatbot', icon: MessageSquare, adminOnly: true },
+        { href: '/settings', label: 'Paramètres', icon: Settings },
+        { href: '/updates', label: 'Mises à jour', icon: Download },
+        { href: '/admin', label: 'Administration', icon: Shield, adminOnly: true },
+      ].filter(item => {
+        if (item.adminOnly && !isAdmin) return false
+        if (item.hideForAdmin && isAdmin) return false
+        return true
+      })
   
   const isSubMenuActive = subMenuItems.some(item => {
     if (item.href === '/') {
@@ -92,7 +103,8 @@ export default function Navigation() {
     <nav className="bg-white shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 flex items-center space-x-4">
+                {!isAdmin && <TrialCountdown />}
                 <Link href={isClient ? "/client" : "/"} className="flex items-center space-x-2">
                   <img src="/logo.svg" alt="FixTector" className="h-10" />
                 </Link>
@@ -161,7 +173,7 @@ export default function Navigation() {
           </div>
           <div className="hidden sm:flex sm:items-center sm:space-x-4 sm:flex-shrink-0">
             <button
-              onClick={() => signOut({ callbackUrl: '/login' })}
+              onClick={() => signOut({ callbackUrl: '/landing' })}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
               <LogOut className="w-4 h-4 mr-2" />
@@ -232,7 +244,7 @@ export default function Navigation() {
             )}
             <button
               onClick={() => {
-                signOut({ callbackUrl: '/login' })
+                signOut({ callbackUrl: '/landing' })
                 setMobileMenuOpen(false)
               }}
               className="flex items-center w-full pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800"

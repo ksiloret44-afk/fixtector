@@ -28,6 +28,7 @@ model Customer {
   appointments Appointment[]
   warranties  Warranty[]
   signatures  Signature[]
+  reviews     Review[]
 
   @@index([email])
   @@index([phone])
@@ -65,6 +66,7 @@ model Repair {
   photos       RepairPhoto[]
   appointments Appointment[]
   warranties   Warranty[]
+  reviews      Review[]
 
   @@index([trackingToken])
 }
@@ -297,5 +299,28 @@ model Settings {
   description   String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  repairId    String?
+  repair      Repair?  @relation(fields: [repairId], references: [id], onDelete: SetNull)
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  rating      Int      // Note de 1 à 5
+  comment     String?  // Commentaire du client
+  customerName String? // Nom du client (peut être anonyme)
+  
+  // Pour les avis clients finaux : pas besoin de validation admin, visible par le réparateur
+  reviewToken String   @unique // Token unique pour accéder à la page d'avis
+  submittedAt DateTime? // Date de soumission
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([customerId])
+  @@index([repairId])
+  @@index([reviewToken])
 }
 

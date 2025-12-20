@@ -50,14 +50,10 @@ export default function RegisterPage() {
         return
       }
 
-      // Afficher un message de succès avec information sur l'approbation
-      if (data.requiresApproval) {
-        setError('')
-        alert('Votre compte a été créé avec succès !\n\nVotre compte est en attente d\'approbation par un administrateur. Vous recevrez un email une fois votre compte approuvé.')
-        router.push('/login?pending=true')
-      } else {
-        router.push('/login?registered=true')
-      }
+      // Afficher un message de succès
+      setError('')
+      alert('Votre compte a été créé avec succès ! Votre essai de 24h a commencé.')
+      router.push('/login?registered=true')
     } catch (err: any) {
       console.error('Erreur lors de l\'inscription:', err)
       setError(err.message || 'Une erreur est survenue lors de la création du compte')
@@ -72,8 +68,16 @@ export default function RegisterPage() {
           <div className="flex justify-center mb-4">
             <img src="/logo.svg" alt="FixTector" className="h-16" />
           </div>
-          <h1 className="text-2xl font-bold text-primary-700 mb-2">Créer un compte</h1>
-          <p className="text-gray-600">Rejoignez FixTector</p>
+          <h1 className="text-2xl font-bold text-primary-700 mb-2">
+            Démarrer l'essai gratuit
+          </h1>
+          <p className="text-gray-600">
+            Profitez de 24h d'essai gratuit pour découvrir FixTector
+          </p>
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+            <p className="font-semibold mb-1">Essai gratuit de 24h</p>
+            <p>Vous pouvez arrêter l'essai à tout moment ou prendre un abonnement pour continuer.</p>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

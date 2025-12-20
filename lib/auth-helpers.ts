@@ -22,3 +22,16 @@ export async function checkMustChangePassword() {
   return session
 }
 
+/**
+ * Vérifie si l'utilisateur doit changer son mot de passe et redirige si nécessaire
+ * Version qui prend l'utilisateur en paramètre (pour éviter de refaire getServerSession)
+ */
+export function checkAuthAndRedirect(user: any) {
+  if (user.mustChangePassword) {
+    redirect('/change-password')
+  }
+  if (user.role === 'client') {
+    redirect('/client')
+  }
+}
+

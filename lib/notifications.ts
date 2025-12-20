@@ -2,6 +2,8 @@
  * Service de notifications par email et SMS
  */
 
+import { getTrackingUrl as getTrackingUrlFromLib } from './tracking'
+
 interface NotificationConfig {
   emailEnabled: boolean
   smsEnabled: boolean
@@ -214,7 +216,17 @@ async function sendSMS(
 /**
  * Génère le template d'email pour un changement de statut
  */
-function generateEmailTemplate(data: RepairNotificationData, statusLabel: string): { subject: string; html: string; text: string } {
+function getTrackingUrl(token: string): string {
+  const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  return `${baseUrl}/r/${token}`
+}
+
+function getReviewUrl(token: string): string {
+  const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  return `${baseUrl}/review/${token}`
+}
+
+function generateEmailTemplate(data: RepairNotificationData, statusLabel: string, reviewToken?: string): { subject: string; html: string; text: string } {
   const statusMessages: Record<string, { subject: string; message: string }> = {
     pending: {
       subject: 'Votre réparation a été enregistrée',
@@ -295,6 +307,20 @@ function generateEmailTemplate(data: RepairNotificationData, statusLabel: string
             </p>
           </div>
           ` : ''}
+          ${reviewToken && data.status === 'completed' ? `
+          <div class="info-box" style="background-color: #F0FDF4; border-left: 4px solid #10B981; padding: 15px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #10B981;">Partagez votre expérience</h3>
+            <p>Votre avis nous tient à cœur ! Prenez quelques instants pour nous laisser un avis sur votre réparation :</p>
+            <p style="text-align: center; margin: 15px 0;">
+              <a href="${getReviewUrl(reviewToken)}" style="display: inline-block; background-color: #10B981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                Laisser un avis
+              </a>
+            </p>
+            <p style="font-size: 12px; color: #666; margin-top: 10px;">
+              Ou copiez ce lien : ${getReviewUrl(reviewToken)}
+            </p>
+          </div>
+          ` : ''}
           <p>Pour toute question, n'hésitez pas à nous contacter.</p>
         </div>
         <div class="footer">
@@ -326,6 +352,10 @@ ${data.trackingToken ? `
 Suivez votre réparation en temps réel :
 ${getTrackingUrl(data.trackingToken)}
 ` : ''}
+${reviewToken && data.status === 'completed' ? `
+Partagez votre expérience en laissant un avis :
+${getReviewUrl(reviewToken)}
+` : ''}
 
 Pour toute question, n'hésitez pas à nous contacter.
 
@@ -342,7 +372,7 @@ Cet email a été envoyé automatiquement.
 /**
  * Génère le template SMS pour un changement de statut
  */
-function generateSMSTemplate(data: RepairNotificationData, statusLabel: string): string {
+function generateSMSTemplate(data: RepairNotificationData, statusLabel: string, reviewToken?: string): string {
   const statusMessages: Record<string, string> = {
     pending: 'Votre réparation a été enregistrée',
     in_progress: 'Votre réparation est en cours',
@@ -359,8 +389,9 @@ function generateSMSTemplate(data: RepairNotificationData, statusLabel: string):
     : ''
   
   const trackingLink = data.trackingToken ? ` Suivi: ${getTrackingUrl(data.trackingToken)}` : ''
+  const reviewLink = reviewToken && data.status === 'completed' ? ` Avis: ${getReviewUrl(reviewToken)}` : ''
 
-  return `${message}. Ticket: ${data.ticketNumber}. ${data.deviceType} ${data.brand} ${data.model}.${costInfo}${trackingLink} ${data.companyName || 'FixTector'}`
+  return `${message}. Ticket: ${data.ticketNumber}. ${data.deviceType} ${data.brand} ${data.model}.${costInfo}${trackingLink}${reviewLink} ${data.companyName || 'FixTector'}`
 }
 
 /**
@@ -368,7 +399,8 @@ function generateSMSTemplate(data: RepairNotificationData, statusLabel: string):
  */
 export async function sendRepairStatusNotification(
   companyPrisma: any,
-  data: RepairNotificationData
+  data: RepairNotificationData,
+  reviewToken?: string
 ): Promise<{ emailSent: boolean; smsSent: boolean }> {
   const config = await getNotificationConfig(companyPrisma)
 
@@ -382,8 +414,8 @@ export async function sendRepairStatusNotification(
 
   const statusLabel = statusLabels[data.status] || data.status
 
-  const emailTemplate = generateEmailTemplate(data, statusLabel)
-  const smsTemplate = generateSMSTemplate(data, statusLabel)
+  const emailTemplate = generateEmailTemplate(data, statusLabel, reviewToken)
+  const smsTemplate = generateSMSTemplate(data, statusLabel, reviewToken)
 
   const results = {
     emailSent: false,

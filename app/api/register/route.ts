@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getMainPrisma } from '@/lib/db-manager'
 import bcrypt from 'bcryptjs'
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { name, email, password } = body
+    const { name, email, password, isTrial = false } = body
 
     if (!name || !email || !password) {
       return NextResponse.json(
@@ -13,6 +13,8 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
+
+    const prisma = getMainPrisma()
 
     // Vérifier si l'utilisateur existe déjà
     const existingUser = await prisma.user.findUnique({
@@ -29,35 +31,36 @@ export async function POST(request: Request) {
     // Hasher le mot de passe
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Pour les utilisateurs avec le rôle "client", on ne crée pas de Customer ici
-    // Le Customer sera créé par l'entreprise lors de l'ajout du client
-    // Pour les autres rôles (user, admin), ils auront une entreprise lors de l'approbation
-    let customerId: string | undefined = undefined
-
-    // Créer l'utilisateur (non approuvé par défaut, rôle user par défaut)
+    // Créer l'utilisateur avec approbation automatique et essai de 24h
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        role: 'user', // Par défaut, les nouveaux utilisateurs sont des "user" (pas "client")
-        approved: false, // Nécessite l'approbation d'un admin
-        customerId: customerId, // null par défaut, sera lié lors de l'approbation si nécessaire
+        role: 'user',
+        approved: true, // Auto-approuvé automatiquement
+        approvedAt: new Date(),
+        trial: {
+          create: {
+            startedAt: new Date(),
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 heures
+            isActive: true,
+            welcomeMessageShown: false,
+          },
+        },
       },
     })
 
     return NextResponse.json(
       { 
-        message: 'Compte créé avec succès. En attente d\'approbation par un administrateur.',
+        message: 'Compte créé avec succès ! Votre essai de 24h a commencé.',
         userId: user.id,
-        requiresApproval: true
       },
       { status: 201 }
     )
   } catch (error: any) {
     console.error('Erreur lors de la création du compte:', error)
     
-    // Messages d'erreur plus spécifiques
     let errorMessage = 'Une erreur est survenue'
     
     if (error.code === 'P2002') {

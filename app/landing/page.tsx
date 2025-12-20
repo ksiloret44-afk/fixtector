@@ -1,5 +1,72 @@
+'use client'
+
 import Link from 'next/link'
-import { CheckCircle, Clock, Smartphone, Users, Wrench, FileText, BarChart3, Calendar, Shield, Settings, Download, Zap, Mail, MessageSquare } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { CheckCircle, Clock, Smartphone, Users, Wrench, FileText, BarChart3, Calendar, Shield, Settings, Download, Zap, Mail, MessageSquare, Star } from 'lucide-react'
+
+function TestimonialsSection() {
+  // Les avis seront chargés côté client pour éviter les problèmes de connexion DB
+  return <TestimonialsClient />
+}
+
+function TestimonialsClient() {
+  const [reviews, setReviews] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/reviews/public')
+      .then(res => res.json())
+      .then(data => {
+        if (data.reviews) {
+          setReviews(data.reviews.slice(0, 3))
+        }
+      })
+      .catch(err => console.error('Erreur:', err))
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading || reviews.length === 0) {
+    return null
+  }
+
+  return (
+    <section className="py-16 bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            Ils en parlent mieux que nous
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {reviews.map((review) => (
+            <div key={review.id} className="bg-white rounded-lg shadow-lg p-6">
+              <div className="flex items-center mb-4">
+                <div className="flex text-yellow-400">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={`h-5 w-5 ${
+                        star <= review.rating
+                          ? 'text-yellow-400 fill-current'
+                          : 'text-gray-300'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+              {review.comment && (
+                <p className="text-gray-700 mb-4 italic">"{review.comment}"</p>
+              )}
+              <p className="text-sm font-semibold text-gray-900">
+                — {review.companyName || 'Entreprise'}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
 
 export default function LandingPage() {
   return (
@@ -41,7 +108,7 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
-                href="/register"
+                href="/register?trial=true"
                 className="bg-primary-600 text-white px-8 py-3 rounded-md text-lg font-medium hover:bg-primary-700 transition-colors"
               >
                 Démarrer l'essai gratuit
@@ -260,56 +327,7 @@ export default function LandingPage() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Ils en parlent mieux que nous
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <div className="flex items-center mb-4">
-                <div className="flex text-yellow-400">
-                  {'★'.repeat(5)}
-                </div>
-              </div>
-              <p className="text-gray-700 mb-4 italic">
-                "FixTector a transformé mon atelier. Je gagne 3 heures par jour, mes clients sont ravis et ma productivité a doublé. C'est le meilleur investissement que j'ai fait !"
-              </p>
-              <p className="text-sm font-semibold text-gray-900">
-                — Cédric @ L'atelier du Tech
-              </p>
-            </div>
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <div className="flex items-center mb-4">
-                <div className="flex text-yellow-400">
-                  {'★'.repeat(5)}
-                </div>
-              </div>
-              <p className="text-gray-700 mb-4 italic">
-                "Les notifications automatiques sont révolutionnaires. Mes clients reçoivent des SMS à chaque étape, plus besoin de les appeler. Un vrai gain de temps !"
-              </p>
-              <p className="text-sm font-semibold text-gray-900">
-                — Hugo @ Horepa
-              </p>
-            </div>
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <div className="flex items-center mb-4">
-                <div className="flex text-yellow-400">
-                  {'★'.repeat(5)}
-                </div>
-              </div>
-              <p className="text-gray-700 mb-4 italic">
-                "L'interface est parfaite, tout est intuitif. Mes clients adorent la page de suivi et me recommandent à leurs amis. Ma clientèle a augmenté de 40% !"
-              </p>
-              <p className="text-sm font-semibold text-gray-900">
-                — Sébastien @ Mobil GSM
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <TestimonialsSection />
 
       {/* FAQ Section */}
       <section className="py-16 bg-white">

@@ -74,6 +74,34 @@ export async function PATCH(
         const { getMainPrisma } = await import('@/lib/db-manager')
         const mainPrisma = getMainPrisma()
         const session = await getServerSession(authOptions)
+        
+        let reviewToken: string | undefined
+        
+        // Si la réparation est terminée, créer un token d'avis
+        if (status === 'completed') {
+          // Vérifier si un avis existe déjà pour cette réparation
+          const existingReview = await companyPrisma.review.findFirst({
+            where: { repairId: repair.id },
+          })
+          
+          if (!existingReview) {
+            // Créer un token unique pour l'avis
+            reviewToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+            
+            // Créer l'entrée Review avec le token
+            await companyPrisma.review.create({
+              data: {
+                repairId: repair.id,
+                customerId: repair.customerId,
+                reviewToken: reviewToken,
+                rating: 0, // Pas encore noté
+              },
+            })
+          } else {
+            reviewToken = existingReview.reviewToken
+          }
+        }
+        
         if (session) {
           const user = await mainPrisma.user.findUnique({
             where: { id: (session.user as any).id },
@@ -96,7 +124,7 @@ export async function PATCH(
             estimatedTime: repair.estimatedTime || undefined,
             notes: repair.notes || undefined,
             companyName: user?.company?.name,
-          })
+          }, reviewToken)
         }
       } catch (error) {
         // Ne pas faire échouer la requête si la notification échoue

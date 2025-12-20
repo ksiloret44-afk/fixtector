@@ -6,7 +6,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL_MAIN")
+  url      = env("DATABASE_URL_MAIN") // Par défaut: file:./prisma/main.db
 }
 
 model Company {
@@ -31,6 +31,7 @@ model Company {
   updatedAt   DateTime @updatedAt
 
   users       User[]
+  reviews     CompanyReview[]
 }
 
 model User {
@@ -50,5 +51,128 @@ model User {
   company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  subscription Subscription?
+  trial         Trial?
+  chatbotMessages ChatbotMessage[]
+  companyReviews CompanyReview[]
+}
+
+model Subscription {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  status          String   @default("active") // active, cancelled, past_due, trialing
+  plan            String   // basic, pro, enterprise
+  stripeCustomerId String? @unique
+  stripeSubscriptionId String? @unique
+  stripePriceId   String?
+  
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean @default(false)
+  cancelledAt        DateTime?
+  
+  lastPaymentStatus String? // succeeded, failed, pending
+  lastPaymentDate   DateTime?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
+  @@index([status])
+}
+
+model Trial {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  startedAt       DateTime @default(now())
+  expiresAt       DateTime // startedAt + 24h
+  isActive        Boolean  @default(true)
+  convertedToSubscription Boolean @default(false)
+  convertedAt     DateTime?
+  
+  welcomeMessageShown Boolean @default(false)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([isActive])
+}
+
+model StripeConfig {
+  id              String   @id @default(cuid())
+  key             String   @unique // 'stripe_config'
+  
+  publishableKey  String?
+  secretKey       String?
+  webhookSecret   String?
+  isActive        Boolean  @default(false)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model ChatbotMessage {
+  id              String   @id @default(cuid())
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  companyId       String?  // ID de l'entreprise (pour les demandes d'aide par entreprise)
+  
+  role            String   // 'user' or 'assistant'
+  content         String   // Contenu du message (peut être long)
+  metadata        String?  // JSON pour stocker des infos supplémentaires
+  isGeneral       Boolean  @default(true) // true pour page d'accueil, false pour demande d'aide entreprise
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([userId])
+  @@index([companyId])
+  @@index([createdAt])
+  @@index([isGeneral])
+}
+
+model AppVersion {
+  id              String   @id @default(cuid())
+  version         String   @unique // Format: "1.1.2"
+  releaseNotes    String   // Notes de version (peut être long)
+  releaseDate     DateTime @default(now())
+  isCurrent       Boolean  @default(false)
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([version])
+  @@index([isCurrent])
+}
+
+model CompanyReview {
+  id          String   @id @default(cuid())
+  companyId   String?  // ID de l'entreprise qui a laissé l'avis
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  userId      String?  // ID de l'utilisateur qui a laissé l'avis
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  rating      Int      // Note de 1 à 5
+  comment     String?  // Commentaire de l'entreprise
+  companyName String?  // Nom de l'entreprise (peut être différent si l'entreprise est supprimée)
+  
+  isPublic    Boolean  @default(false) // Si l'avis peut être affiché publiquement
+  isApproved  Boolean  @default(false) // Si l'avis est approuvé par l'admin système
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  approvedAt  DateTime?
+  approvedBy  String?  // ID de l'admin qui a approuvé
+  
+  @@index([companyId])
+  @@index([userId])
+  @@index([isPublic, isApproved])
 }
 

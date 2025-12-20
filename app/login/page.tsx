@@ -155,9 +155,8 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-600">
-          <p>Pas encore de compte ?</p>
           <Link href="/register" className="text-primary-600 hover:text-primary-700 font-medium">
-            Créer un compte
+            Commencer l'essai gratuit
           </Link>
         </div>
       </div>
