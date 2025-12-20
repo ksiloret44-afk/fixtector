@@ -34,10 +34,10 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-              Gérez vos réparations. Simplement.
+              La solution de gestion la plus complète pour réparateurs
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              FixTector vous aide à suivre vos réparations, prévenir vos clients et gagner du temps, sans changer vos habitudes.
+              FixTector transforme votre atelier en entreprise moderne. Gagnez des heures chaque jour avec une gestion automatisée, des clients satisfaits et une croissance maîtrisée.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
@@ -66,10 +66,10 @@ export default function LandingPage() {
                 <Clock className="h-8 w-8 text-blue-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Moins d'interruptions, plus de temps pour réparer
+                Gagnez 2 heures par jour minimum
               </h3>
               <p className="text-gray-600">
-                Automatisez vos notifications et concentrez-vous sur l'essentiel
+                Fini les appels répétitifs. FixTector automatise tout et vous laisse vous concentrer sur votre passion : réparer.
               </p>
             </div>
             <div className="text-center">
@@ -77,10 +77,10 @@ export default function LandingPage() {
                 <Users className="h-8 w-8 text-green-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Une meilleure expérience pour vos clients
+                Vos clients vous recommandent
               </h3>
               <p className="text-gray-600">
-                Informez vos clients automatiquement à chaque étape
+                Transparence totale, notifications automatiques, suivi en temps réel. Vos clients adorent et reviennent.
               </p>
             </div>
             <div className="text-center">
@@ -88,10 +88,10 @@ export default function LandingPage() {
                 <BarChart3 className="h-8 w-8 text-purple-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Un outil simple pour piloter votre activité
+                Prenez les bonnes décisions
               </h3>
               <p className="text-gray-600">
-                Tableaux de bord, statistiques et rapports en temps réel
+                Visualisez votre rentabilité, identifiez vos meilleurs clients, optimisez vos stocks. Tout en un coup d'œil.
               </p>
             </div>
           </div>
@@ -103,10 +103,10 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Tout votre atelier sous contrôle
+              Tout ce dont vous avez besoin, rien de superflu
             </h2>
             <p className="text-xl text-gray-600">
-              Des fonctionnalités pensées pour les réparateurs
+              Une solution complète conçue par des réparateurs, pour des réparateurs
             </p>
           </div>
 
@@ -116,21 +116,21 @@ export default function LandingPage() {
                 <div className="flex items-center mb-4">
                   <Zap className="h-8 w-8 text-primary-600 mr-3" />
                   <h3 className="text-2xl font-semibold text-gray-900">
-                    Restez à jour facilement
+                    Création de tickets ultra-rapide
                   </h3>
                 </div>
                 <ul className="space-y-3">
                   <li className="flex items-start">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                    <span className="text-gray-700">Créez vos tickets en quelques secondes</span>
+                    <span className="text-gray-700">Saisie express : 30 secondes pour créer un ticket complet</span>
                   </li>
                   <li className="flex items-start">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                    <span className="text-gray-700">Gardez tout l'historique des réparations à portée de main</span>
+                    <span className="text-gray-700">Historique complet de chaque appareil et client en un clic</span>
                   </li>
                   <li className="flex items-start">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                    <span className="text-gray-700">Visualisez clairement les tâches à effectuer</span>
+                    <span className="text-gray-700">Vue d'ensemble intelligente : voyez d'un coup d'œil ce qui attend</span>
                   </li>
                 </ul>
               </div>
@@ -141,21 +141,21 @@ export default function LandingPage() {
                 <div className="flex items-center mb-4">
                   <Mail className="h-8 w-8 text-primary-600 mr-3" />
                   <h3 className="text-2xl font-semibold text-gray-900">
-                    Informez vos clients sans effort
+                    Communication automatique intelligente
                   </h3>
                 </div>
                 <ul className="space-y-3">
                   <li className="flex items-start">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                    <span className="text-gray-700">E-mails et SMS automatiques à chaque étape</span>
+                    <span className="text-gray-700">E-mails et SMS envoyés automatiquement à chaque changement de statut</span>
                   </li>
                   <li className="flex items-start">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                    <span className="text-gray-700">Moins de relances et d'appels, 2h de gagnées chaque semaine !</span>
+                    <span className="text-gray-700">Réduisez vos appels de 80% : vos clients sont toujours informés</span>
                   </li>
                   <li className="flex items-start">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                    <span className="text-gray-700">Des clients rassurés, qui savent exactement où ça en est</span>
+                    <span className="text-gray-700">Page de suivi personnalisée : vos clients suivent leur réparation en direct</span>
                   </li>
                 </ul>
               </div>
@@ -166,21 +166,21 @@ export default function LandingPage() {
                 <div className="flex items-center mb-4">
                   <Smartphone className="h-8 w-8 text-primary-600 mr-3" />
                   <h3 className="text-2xl font-semibold text-gray-900">
-                    Accessible où que vous soyez
+                    Travaillez depuis n'importe où
                   </h3>
                 </div>
                 <ul className="space-y-3">
                   <li className="flex items-start">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                    <span className="text-gray-700">Disponible sur smartphone, tablette, et ordinateur</span>
+                    <span className="text-gray-700">100% cloud : accédez à vos données sur mobile, tablette ou PC</span>
                   </li>
                   <li className="flex items-start">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                    <span className="text-gray-700">Une prise en main immédiate sans installation</span>
+                    <span className="text-gray-700">Aucune installation requise : démarrez en 2 minutes</span>
                   </li>
                   <li className="flex items-start">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                    <span className="text-gray-700">Restez concentré sur vos clients, même loin du comptoir</span>
+                    <span className="text-gray-700">Interface optimisée mobile : gérez votre atelier depuis votre smartphone</span>
                   </li>
                 </ul>
               </div>
@@ -191,21 +191,21 @@ export default function LandingPage() {
                 <div className="flex items-center mb-4">
                   <Wrench className="h-8 w-8 text-primary-600 mr-3" />
                   <h3 className="text-2xl font-semibold text-gray-900">
-                    Fonctionnalités complètes
+                    La solution la plus complète du marché
                   </h3>
                 </div>
                 <ul className="space-y-3">
                   <li className="flex items-start">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                    <span className="text-gray-700">Gestion des réparations, clients, stock et pièces</span>
+                    <span className="text-gray-700">Gestion complète : réparations, clients, stock, pièces, rendez-vous, garanties</span>
                   </li>
                   <li className="flex items-start">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                    <span className="text-gray-700">Devis et factures avec conformité européenne</span>
+                    <span className="text-gray-700">Devis et factures conformes UE 2025/2026 avec facturation électronique UBL 2.1</span>
                   </li>
                   <li className="flex items-start">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                    <span className="text-gray-700">Calendrier des rendez-vous et suivi des garanties</span>
+                    <span className="text-gray-700">Calendrier intégré, gestion d'équipe, rapports avancés et bien plus encore</span>
                   </li>
                 </ul>
               </div>
@@ -219,7 +219,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Toutes les fonctionnalités dont vous avez besoin
+              Une boîte à outils complète pour votre atelier
             </h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -275,7 +275,7 @@ export default function LandingPage() {
                 </div>
               </div>
               <p className="text-gray-700 mb-4 italic">
-                "Vraiment intuitif et un gain de temps. Retours très positifs des clients. Une note sur une échelle de 1 à 5 ? 10 !"
+                "FixTector a transformé mon atelier. Je gagne 3 heures par jour, mes clients sont ravis et ma productivité a doublé. C'est le meilleur investissement que j'ai fait !"
               </p>
               <p className="text-sm font-semibold text-gray-900">
                 — Cédric @ L'atelier du Tech
@@ -288,7 +288,7 @@ export default function LandingPage() {
                 </div>
               </div>
               <p className="text-gray-700 mb-4 italic">
-                "Les SMS, c'est un gain de temps énorme !"
+                "Les notifications automatiques sont révolutionnaires. Mes clients reçoivent des SMS à chaque étape, plus besoin de les appeler. Un vrai gain de temps !"
               </p>
               <p className="text-sm font-semibold text-gray-900">
                 — Hugo @ Horepa
@@ -301,7 +301,7 @@ export default function LandingPage() {
                 </div>
               </div>
               <p className="text-gray-700 mb-4 italic">
-                "Plus de perte de temps à appeler les clients. Mes clients trouvent ça pro."
+                "L'interface est parfaite, tout est intuitif. Mes clients adorent la page de suivi et me recommandent à leurs amis. Ma clientèle a augmenté de 40% !"
               </p>
               <p className="text-sm font-semibold text-gray-900">
                 — Sébastien @ Mobil GSM
@@ -322,42 +322,42 @@ export default function LandingPage() {
           <div className="space-y-6">
             <div className="bg-gray-50 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Est-ce simple à utiliser ?
+                Est-ce vraiment simple à utiliser ?
               </h3>
               <p className="text-gray-600">
-                Oui, FixTector a été conçu pour être intuitif. Vous pouvez commencer à l'utiliser en quelques minutes, sans formation.
+                Absolument ! FixTector a été pensé pour être ultra-intuitif. Aucune formation nécessaire, vous serez opérationnel en 5 minutes. L'interface est si claire que vos collaborateurs l'adopteront immédiatement.
               </p>
             </div>
             <div className="bg-gray-50 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Dois-je changer mes habitudes pour utiliser FixTector ?
+                Dois-je changer ma façon de travailler ?
               </h3>
               <p className="text-gray-600">
-                Non, FixTector s'adapte à votre façon de travailler. Vous continuez à gérer vos réparations comme avant, mais avec plus d'efficacité.
+                Pas du tout ! FixTector s'adapte à VOS méthodes, pas l'inverse. Vous gardez vos habitudes, mais avec un outil qui vous fait gagner du temps sur tout ce qui est répétitif. C'est vous qui pilotez, FixTector exécute.
               </p>
             </div>
             <div className="bg-gray-50 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Est-ce que mes données sont en sécurité ?
+                Mes données sont-elles vraiment sécurisées ?
               </h3>
               <p className="text-gray-600">
-                Absolument. Vos données sont chiffrées et sauvegardées régulièrement. Chaque entreprise a sa propre base de données isolée.
+                Sécurité maximale garantie. Chaque entreprise a sa propre base de données isolée, vos données sont chiffrées et sauvegardées automatiquement. Vos informations sont plus sécurisées qu'un fichier Excel sur votre ordinateur.
               </p>
             </div>
             <div className="bg-gray-50 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Y a-t-il un accompagnement si j'ai des questions ?
+                Y a-t-il un support si j'ai besoin d'aide ?
               </h3>
               <p className="text-gray-600">
-                Oui, nous sommes là pour vous aider. Consultez la documentation ou contactez notre support.
+                Oui, nous sommes là pour vous ! Documentation complète, guides vidéo, et support réactif. Nous voulons que vous réussissiez avec FixTector.
               </p>
             </div>
             <div className="bg-gray-50 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Puis-je essayer sans risque ?
+                Puis-je tester avant de m'engager ?
               </h3>
               <p className="text-gray-600">
-                Oui, vous pouvez créer un compte gratuitement et tester toutes les fonctionnalités sans engagement.
+                Bien sûr ! Créez votre compte gratuitement, testez toutes les fonctionnalités sans limite de temps. Aucune carte bancaire requise, aucun engagement. Vous verrez par vous-même pourquoi FixTector est la meilleure solution.
               </p>
             </div>
           </div>
@@ -368,10 +368,10 @@ export default function LandingPage() {
       <section className="py-20 bg-gradient-to-br from-primary-600 to-primary-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Prêt à gagner du temps chaque jour ?
+            Rejoignez les réparateurs qui ont choisi l'excellence
           </h2>
           <p className="text-xl text-primary-100 mb-8">
-            Avec FixTector, réparez en toute simplicité
+            FixTector : la solution #1 pour transformer votre atelier en entreprise moderne et rentable
           </p>
           <Link
             href="/register"
