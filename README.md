@@ -4,13 +4,22 @@ Application SaaS complète pour la gestion d'une activité de réparation de mat
 
 ## Fonctionnalités
 
-- 🔐 Authentification sécurisée
-- 👥 Gestion des clients
-- 🔧 Gestion des réparations (suivi, statuts, notes)
-- 📋 Devis et factures
-- 📦 Gestion du stock (pièces détachées)
-- 📊 Tableau de bord avec statistiques
-- 💰 Suivi financier
+- 🔐 Authentification sécurisée avec NextAuth.js
+- 👥 Gestion complète des clients
+- 🔧 Gestion des réparations (suivi, statuts, notes, photos)
+- 📋 Devis et factures (PDF, factures électroniques UBL 2.1)
+- 📦 Gestion du stock (pièces détachées avec alertes)
+- 📊 Tableau de bord avec statistiques détaillées
+- 💰 Suivi financier complet
+- 📅 Calendrier des rendez-vous interactif
+- 📈 Rapports et statistiques avancées
+- 🔔 Notifications email et SMS automatiques
+- 🔒 Gestion SSL/HTTPS dans les paramètres
+- 🔄 Système de vérification des mises à jour
+- 👨‍💼 Gestion des collaborateurs (équipe)
+- 🖼️ Logo entreprise personnalisable
+- 📱 Page de suivi publique pour les clients
+- 🏢 Multi-entreprises avec bases de données séparées
 
 ## Technologies
 
