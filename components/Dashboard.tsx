@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getUserPrisma, getMainPrisma } from '@/lib/db-manager'
 import Navigation from './Navigation'
+import UpdateNotification from './UpdateNotification'
 import {
   Wrench,
   Users,
