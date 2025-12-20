@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { RefreshCw, Download, CheckCircle, AlertCircle, Loader2, ExternalLink } from 'lucide-react'
+import { RefreshCw, Download, CheckCircle, AlertCircle, Loader2, ExternalLink, X } from 'lucide-react'
 
 interface UpdateInfo {
   currentVersion: string
@@ -18,24 +18,64 @@ export default function UpdatesChecker() {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [checking, setChecking] = useState(false)
+  const [notification, setNotification] = useState<{ type: 'success' | 'info' | 'error', message: string } | null>(null)
 
   useEffect(() => {
     checkForUpdates()
   }, [])
 
+  // Effacer la notification après 5 secondes
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null)
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [notification])
+
   const checkForUpdates = async () => {
     setChecking(true)
+    setNotification(null)
     try {
-      const response = await fetch('/api/updates/check')
+      // Forcer le rafraîchissement en ajoutant un timestamp
+      const response = await fetch(`/api/updates/check?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      })
       const data = await response.json()
       setUpdateInfo(data)
+      
+      // Afficher une notification selon le résultat
+      if (data.error) {
+        setNotification({
+          type: 'error',
+          message: data.error || 'Impossible de vérifier les mises à jour',
+        })
+      } else if (data.updateAvailable) {
+        setNotification({
+          type: 'info',
+          message: `Mise à jour disponible ! Version ${data.latestVersion} est disponible.`,
+        })
+      } else {
+        setNotification({
+          type: 'success',
+          message: 'Vous êtes sur la dernière version disponible.',
+        })
+      }
     } catch (error) {
       console.error('Erreur lors de la vérification:', error)
       setUpdateInfo({
-        currentVersion: '1.0.0',
-        latestVersion: '1.0.0',
+        currentVersion: '1.1.2',
+        latestVersion: '1.1.2',
         updateAvailable: false,
         error: 'Impossible de vérifier les mises à jour',
+      })
+      setNotification({
+        type: 'error',
+        message: 'Impossible de vérifier les mises à jour. Vérifiez votre connexion internet.',
       })
     } finally {
       setLoading(false)
@@ -66,6 +106,30 @@ export default function UpdatesChecker() {
 
   return (
     <div className="space-y-6">
+      {/* Notification toast */}
+      {notification && (
+        <div
+          className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg flex items-center space-x-3 animate-in slide-in-from-top-5 ${
+            notification.type === 'success'
+              ? 'bg-green-50 border border-green-200 text-green-800'
+              : notification.type === 'info'
+              ? 'bg-blue-50 border border-blue-200 text-blue-800'
+              : 'bg-red-50 border border-red-200 text-red-800'
+          }`}
+        >
+          {notification.type === 'success' && <CheckCircle className="h-5 w-5 text-green-600" />}
+          {notification.type === 'info' && <AlertCircle className="h-5 w-5 text-blue-600" />}
+          {notification.type === 'error' && <AlertCircle className="h-5 w-5 text-red-600" />}
+          <p className="text-sm font-medium">{notification.message}</p>
+          <button
+            onClick={() => setNotification(null)}
+            className="ml-4 text-gray-400 hover:text-gray-600"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* En-tête avec bouton de rafraîchissement */}
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
@@ -73,7 +137,7 @@ export default function UpdatesChecker() {
           <button
             onClick={checkForUpdates}
             disabled={checking}
-            className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${checking ? 'animate-spin' : ''}`} />
             {checking ? 'Vérification...' : 'Vérifier maintenant'}
