@@ -67,6 +67,7 @@ export const authOptions: NextAuthOptions = {
             email: user.email,
             name: user.name,
             role: user.role,
+            mustChangePassword: user.mustChangePassword,
           }
         } catch (error) {
           console.error('Auth error:', error)
@@ -93,6 +94,7 @@ export const authOptions: NextAuthOptions = {
         token.email = user.email
         token.name = user.name
         token.role = (user as any).role
+        token.mustChangePassword = (user as any).mustChangePassword || false
       }
       console.log('JWT callback - Token:', { id: token.id, email: token.email })
       return token
@@ -102,6 +104,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.id as string
         (session.user as any).role = token.role as string
+        (session.user as any).mustChangePassword = token.mustChangePassword as boolean || false
         session.user.email = token.email as string
         session.user.name = token.name as string
       }

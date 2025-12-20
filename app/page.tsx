@@ -12,6 +12,11 @@ export default async function Home() {
 
   const user = session.user as any
   
+  // Vérifier si l'utilisateur doit changer son mot de passe
+  if (user.mustChangePassword) {
+    redirect('/change-password')
+  }
+  
   // Rediriger les clients vers leur espace dédié
   if (user.role === 'client') {
     redirect('/client')

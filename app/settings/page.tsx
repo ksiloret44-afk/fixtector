@@ -11,6 +11,13 @@ export default async function SettingsPage() {
     redirect('/login')
   }
 
+  const user = session.user as any
+  
+  // Vérifier si l'utilisateur doit changer son mot de passe
+  if (user.mustChangePassword) {
+    redirect('/change-password')
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />

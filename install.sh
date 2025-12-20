@@ -279,6 +279,14 @@ configure_prisma() {
     sudo -u "$APP_USER" npx prisma db push --schema=prisma/schema-main.prisma --accept-data-loss || true
     sudo -u "$APP_USER" npx prisma db push --schema=prisma/schema-company.prisma --accept-data-loss || true
     
+    # Créer l'utilisateur admin par défaut
+    print_info "Création du compte administrateur par défaut..."
+    if [ -f "scripts/init-db.ts" ]; then
+        sudo -u "$APP_USER" npx tsx scripts/init-db.ts || print_warning "Impossible de créer l'utilisateur admin (peut-être déjà existant)"
+    else
+        print_warning "Script init-db.ts non trouvé, création de l'admin ignorée"
+    fi
+    
     print_success "Prisma configuré"
 }
 
@@ -848,10 +856,14 @@ show_summary() {
         echo "  sudo certbot --nginx -d votre-domaine.com"
     fi
     echo ""
+    print_success "Compte administrateur créé automatiquement:"
+    echo "   Email: admin@admin.com"
+    echo "   Mot de passe: admin123"
+    echo "   ⚠️  Changez ce mot de passe après la première connexion!"
+    echo ""
     print_warning "N'oubliez pas de:"
     echo "  1. Configurer SMTP/SMS dans $APP_DIR/.env.local"
-    echo "  2. Créer un compte administrateur"
-    echo "  3. Configurer les informations légales de l'entreprise"
+    echo "  2. Configurer les informations légales de l'entreprise"
     echo ""
 }
 

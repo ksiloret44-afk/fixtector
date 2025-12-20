@@ -11,8 +11,15 @@ export default async function AdminPage() {
     redirect('/login')
   }
 
+  const user = session.user as any
+  
+  // Vérifier si l'utilisateur doit changer son mot de passe
+  if (user.mustChangePassword) {
+    redirect('/change-password')
+  }
+
   // Vérifier que l'utilisateur est admin
-  if ((session.user as any).role !== 'admin') {
+  if (user.role !== 'admin') {
     redirect('/')
   }
 
