@@ -24,7 +24,30 @@ Application SaaS complète pour la gestion d'une activité de réparation de mat
 
 ## Installation
 
-### Installation rapide
+### 🚀 Installation automatique sur VPS Linux (Recommandé)
+
+Pour une installation complète et automatique sur un serveur Linux :
+
+```bash
+# Télécharger le script d'installation
+wget https://raw.githubusercontent.com/ksiloret44-afk/fixtector/main/install.sh
+chmod +x install.sh
+sudo ./install.sh
+```
+
+Le script installe automatiquement :
+- ✅ Node.js 20.x LTS
+- ✅ Toutes les dépendances système
+- ✅ L'application et ses dépendances npm
+- ✅ Prisma et les bases de données
+- ✅ PM2 pour la gestion des processus
+- ✅ Nginx ou Apache comme reverse proxy
+- ✅ SSL avec Let's Encrypt (optionnel)
+- ✅ Scripts de sauvegarde automatique
+
+**Voir `INSTALL.md` pour plus de détails.**
+
+### 💻 Installation locale (Développement)
 
 **IMPORTANT:** Créez d'abord un fichier `.env.local` à la racine du projet avec le contenu suivant :
 
@@ -102,43 +125,43 @@ Pour visualiser la base de données :
 npm run db:studio
 ```
 
-## Déploiement
+## 📚 Documentation
 
-### Installation automatique sur VPS Linux
+- **[INSTALL.md](INSTALL.md)** - Guide d'installation automatique complet
+- **[DEPLOY.md](DEPLOY.md)** - Guide de déploiement détaillé
+- **[QUICK_START.md](QUICK_START.md)** - Démarrage rapide
+- **[VPS_REQUIREMENTS.md](VPS_REQUIREMENTS.md)** - Spécifications système requises
+- **[WEB_SERVERS.md](WEB_SERVERS.md)** - Configuration Apache/Nginx
 
-Pour une installation automatique complète sur un serveur Linux :
+## 🚀 Déploiement
+
+### Déploiement sur VPS (Production)
+
+L'application est optimisée pour être déployée sur un VPS Linux. Utilisez le script d'installation automatique :
 
 ```bash
-# Télécharger et exécuter le script d'installation
-wget https://raw.githubusercontent.com/votre-repo/fixtector/main/install.sh
+wget https://raw.githubusercontent.com/ksiloret44-afk/fixtector/main/install.sh
 chmod +x install.sh
 sudo ./install.sh
 ```
 
-Le script installe automatiquement :
-- Node.js 20.x LTS
-- Toutes les dépendances système
-- L'application et ses dépendances npm
-- Prisma et les bases de données
-- PM2 pour la gestion des processus
-- Nginx comme reverse proxy
-- SSL avec Let's Encrypt (optionnel)
-- Scripts de sauvegarde automatique
+**Configuration minimale requise :**
+- CPU : 2 cœurs
+- RAM : 4 GB
+- Stockage : 50 GB SSD
+- OS : Ubuntu 20.04+, Debian 11+, CentOS 8+
 
-Voir `INSTALL.md` pour plus de détails.
+Voir `VPS_REQUIREMENTS.md` pour plus de détails.
 
-### Déploiement manuel
+### Déploiement sur plateformes cloud
 
-L'application peut être déployée sur Vercel, Railway, ou tout autre hébergeur supportant Next.js.
+L'application peut également être déployée sur :
+- **Vercel** : Déploiement automatique depuis GitHub
+- **Railway** : Déploiement avec base de données PostgreSQL
+- **Heroku** : Support complet avec buildpacks Node.js
 
 Pour la production, pensez à :
-- Changer `DATABASE_URL` pour PostgreSQL
+- Changer `DATABASE_URL` pour PostgreSQL (si nécessaire)
 - Configurer `NEXTAUTH_SECRET` avec une valeur sécurisée
 - Configurer `NEXTAUTH_URL` avec votre domaine
-
-### Documentation de déploiement
-
-- `INSTALL.md` - Guide d'installation automatique
-- `DEPLOY.md` - Guide de déploiement détaillé
-- `VPS_REQUIREMENTS.md` - Spécifications système requises
 
