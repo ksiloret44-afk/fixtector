@@ -12,15 +12,15 @@ export default async function ProfilePage() {
     redirect('/login')
   }
 
-  const user = session.user as any
+  const sessionUser = session.user as any
   
   // Vérifier si l'utilisateur doit changer son mot de passe
-  if (user.mustChangePassword) {
+  if (sessionUser.mustChangePassword) {
     redirect('/change-password')
   }
 
   const user = await prisma.user.findUnique({
-    where: { id: (session.user as any).id },
+    where: { id: sessionUser.id },
     select: {
       id: true,
       name: true,
