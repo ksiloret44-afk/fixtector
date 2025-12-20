@@ -37,6 +37,28 @@ Application SaaS complète pour la gestion d'une activité de réparation de mat
 
 Le script d'installation automatique configure tout ce dont vous avez besoin en une seule commande.
 
+#### 📋 Configuration système requise
+
+**Configuration minimale :**
+- **CPU** : 2 cœurs
+- **RAM** : 4 GB
+- **Stockage** : 50 GB SSD
+- **Bande passante** : 100 Mbps
+- **OS** : Ubuntu 20.04+, Debian 11+, CentOS 8+, Rocky Linux, AlmaLinux
+
+**Configuration recommandée (production) :**
+- **CPU** : 4 cœurs
+- **RAM** : 8 GB
+- **Stockage** : 100 GB SSD (avec sauvegardes automatiques)
+- **Bande passante** : 1 Gbps
+- **OS** : Ubuntu 22.04 LTS ou Debian 12
+
+**Estimation des coûts VPS :**
+- **Minimal** : ~5-10€/mois (Hetzner, OVH, DigitalOcean)
+- **Recommandé** : ~15-25€/mois
+
+> 💡 **Note importante** : Pour une utilisation avec plusieurs entreprises et beaucoup de données, privilégiez la configuration recommandée. La configuration minimale convient pour tester ou pour une petite activité.
+
 #### Prérequis
 
 - Serveur Linux (Ubuntu 20.04+, Debian 11+, CentOS 8+, Rocky Linux, AlmaLinux)
