@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { getUserPrisma } from '@/lib/db-manager'
 import Navigation from '@/components/Navigation'
 import NewQuoteForm from '@/components/NewQuoteForm'
 import { notFound } from 'next/navigation'
@@ -21,7 +21,12 @@ export default async function NewQuotePage({
     redirect('/repairs')
   }
 
-  const repair = await prisma.repair.findUnique({
+  const companyPrisma = await getUserPrisma()
+  if (!companyPrisma) {
+    redirect('/')
+  }
+
+  const repair = await companyPrisma.repair.findUnique({
     where: { id: searchParams.repairId },
     include: {
       customer: true,
@@ -30,6 +35,7 @@ export default async function NewQuotePage({
           part: true,
         },
       },
+      quote: true,
     },
   })
 

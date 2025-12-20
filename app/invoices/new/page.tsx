@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { getUserPrisma } from '@/lib/db-manager'
 import Navigation from '@/components/Navigation'
 import NewInvoiceForm from '@/components/NewInvoiceForm'
 import { notFound } from 'next/navigation'
@@ -17,9 +17,14 @@ export default async function NewInvoicePage({
     redirect('/login')
   }
 
+  const companyPrisma = await getUserPrisma()
+  if (!companyPrisma) {
+    redirect('/')
+  }
+
   // Si on duplique une facture existante
   if (searchParams.duplicate) {
-    const invoice = await prisma.invoice.findUnique({
+    const invoice = await companyPrisma.invoice.findUnique({
       where: { id: searchParams.duplicate },
       include: {
         repair: {
@@ -70,7 +75,7 @@ export default async function NewInvoicePage({
     redirect('/repairs')
   }
 
-  const repair = await prisma.repair.findUnique({
+  const repair = await companyPrisma.repair.findUnique({
     where: { id: searchParams.repairId },
     include: {
       customer: true,
@@ -88,7 +93,7 @@ export default async function NewInvoicePage({
   }
 
   // Si une facture existe déjà, rediriger vers elle
-  const existingInvoice = await prisma.invoice.findUnique({
+  const existingInvoice = await companyPrisma.invoice.findUnique({
     where: { repairId: repair.id },
   })
 

@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect, notFound } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { getUserPrisma } from '@/lib/db-manager'
 import Navigation from '@/components/Navigation'
 import EditRepairForm from '@/components/EditRepairForm'
 
@@ -16,11 +16,15 @@ export default async function EditRepairPage({
     redirect('/login')
   }
 
-  const repair = await prisma.repair.findUnique({
+  const companyPrisma = await getUserPrisma()
+  if (!companyPrisma) {
+    redirect('/')
+  }
+
+  const repair = await companyPrisma.repair.findUnique({
     where: { id: params.id },
     include: {
       customer: true,
-      user: true,
       parts: {
         include: {
           part: true,
