@@ -6,8 +6,9 @@ import Dashboard from '@/components/Dashboard'
 export default async function Home() {
   const session = await getServerSession(authOptions)
 
+  // Si l'utilisateur n'est pas connecté, afficher la page d'accueil marketing
   if (!session) {
-    redirect('/login')
+    redirect('/landing')
   }
 
   const user = session.user as any
