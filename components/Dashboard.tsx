@@ -298,8 +298,12 @@ export default async function Dashboard() {
                                   ? 'bg-green-100 text-green-800'
                                   : repair.status === 'in_progress'
                                   ? 'bg-blue-100 text-blue-800'
+                                  : repair.status === 'waiting_parts'
+                                  ? 'bg-orange-100 text-orange-800'
                                   : repair.status === 'pending'
                                   ? 'bg-yellow-100 text-yellow-800'
+                                  : repair.status === 'cancelled'
+                                  ? 'bg-red-100 text-red-800'
                                   : 'bg-gray-100 text-gray-800'
                               }`}
                             >
@@ -307,8 +311,12 @@ export default async function Dashboard() {
                                 ? 'Terminée'
                                 : repair.status === 'in_progress'
                                 ? 'En cours'
+                                : repair.status === 'waiting_parts'
+                                ? 'En attente de pièces'
                                 : repair.status === 'pending'
                                 ? 'En attente'
+                                : repair.status === 'cancelled'
+                                ? 'Annulée'
                                 : repair.status}
                             </span>
                           </div>
