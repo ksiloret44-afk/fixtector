@@ -35,6 +35,11 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Fonction pour vérifier si la commande existe
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
 # Vérifier que le script est exécuté avec sudo
 if [ "$EUID" -ne 0 ]; then
     print_error "Ce script doit être exécuté avec sudo"
@@ -73,51 +78,65 @@ if [ -f "$APP_DIR/package.json" ]; then
     fi
     print_info "Nettoyage du répertoire..."
     sudo rm -rf "$APP_DIR"/*
+elif [ -d "$APP_DIR" ] && [ "$(ls -A $APP_DIR 2>/dev/null)" ]; then
+    print_warning "Le répertoire $APP_DIR existe mais ne contient pas package.json"
+    print_info "Contenu actuel:"
+    sudo ls -la "$APP_DIR" | head -10
+    read -p "Voulez-vous nettoyer et réinstaller ? (o/N): " CLEAN
+    if [[ "$CLEAN" =~ ^[OoYy]$ ]]; then
+        print_info "Nettoyage du répertoire..."
+        sudo rm -rf "$APP_DIR"/*
+    fi
+fi
+
+# Installer Git si nécessaire
+if ! command_exists git; then
+    print_warning "Git n'est pas installé, installation..."
+    if command_exists apt-get; then
+        sudo apt-get update
+        sudo apt-get install -y git
+    elif command_exists yum; then
+        sudo yum install -y git
+    else
+        print_error "Impossible d'installer Git automatiquement"
+        exit 1
+    fi
 fi
 
 # Méthode 1 : Cloner avec Git (le plus fiable)
 print_info "Méthode 1 : Clonage du repository avec Git..."
 if command_exists git; then
-    local temp_repo_dir=$(mktemp -d)
+    # Si le répertoire existe et n'est pas vide, le supprimer d'abord
+    if [ -d "$APP_DIR" ] && [ "$(ls -A $APP_DIR 2>/dev/null)" ]; then
+        print_warning "Le répertoire $APP_DIR existe déjà et n'est pas vide"
+        print_info "Suppression du contenu existant..."
+        sudo rm -rf "$APP_DIR"/* "$APP_DIR"/.git 2>/dev/null || true
+    fi
+    
     local repo_url="https://${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git"
     
-    print_info "Clonage dans $temp_repo_dir..."
-    if sudo -u "$APP_USER" git clone "$repo_url" "$temp_repo_dir" 2>&1; then
-        if [ -f "$temp_repo_dir/package.json" ]; then
-            print_success "Repository cloné avec succès"
-            print_info "Copie des fichiers vers $APP_DIR..."
-            
-            # Copier tous les fichiers sauf .git
-            sudo -u "$APP_USER" cp -r "$temp_repo_dir"/* "$APP_DIR/" 2>/dev/null || {
-                find "$temp_repo_dir" -mindepth 1 -maxdepth 1 ! -name '.git' -exec sudo -u "$APP_USER" cp -r {} "$APP_DIR/" \;
-            }
+    print_info "Clonage directement dans $APP_DIR..."
+    if sudo -u "$APP_USER" git clone "$repo_url" "$APP_DIR" 2>&1; then
+        # Vérifier que package.json existe
+        if [ -f "$APP_DIR/package.json" ]; then
+            print_success "Repository cloné avec succès !"
             
             # S'assurer que les permissions sont correctes
             sudo chown -R "$APP_USER:$APP_USER" "$APP_DIR"
             
-            # Vérifier que package.json a été copié
-            if [ -f "$APP_DIR/package.json" ]; then
-                print_success "Fichiers copiés avec succès !"
-                print_info "package.json trouvé dans $APP_DIR"
-                rm -rf "$temp_repo_dir"
-                
-                # Afficher quelques fichiers pour vérification
-                echo ""
-                print_info "Vérification des fichiers copiés:"
-                ls -la "$APP_DIR" | head -10
-                echo ""
-                print_success "Installation réussie ! Vous pouvez maintenant exécuter:"
-                echo "  cd $APP_DIR"
-                echo "  sudo -u $APP_USER npm install --production"
-                exit 0
-            else
-                print_error "package.json n'a pas été copié"
-            fi
-            
-            rm -rf "$temp_repo_dir"
+            # Afficher quelques fichiers pour vérification
+            echo ""
+            print_info "Vérification des fichiers copiés:"
+            sudo ls -la "$APP_DIR" | head -10
+            echo ""
+            print_success "Installation réussie ! Vous pouvez maintenant exécuter:"
+            echo "  cd $APP_DIR"
+            echo "  sudo -u $APP_USER npm install --production"
+            exit 0
         else
             print_error "package.json non trouvé dans le repository cloné"
-            rm -rf "$temp_repo_dir"
+            print_info "Contenu de $APP_DIR:"
+            sudo ls -la "$APP_DIR" | head -10
         fi
     else
         print_error "Échec du clonage Git"
