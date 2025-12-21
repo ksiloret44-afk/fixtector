@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
 // Version actuelle de l'application (à mettre à jour à chaque release)
-const CURRENT_VERSION = '1.1.3'
+const CURRENT_VERSION = '1.1.4'
 
 export async function GET() {
   try {
