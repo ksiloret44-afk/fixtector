@@ -86,6 +86,32 @@ get_latest_release() {
     fi
 }
 
+# Fonction pour télécharger un fichier depuis GitHub (avec token si repository privé)
+download_file_from_github() {
+    local repo=$1
+    local file_path=$2
+    local branch=$3
+    local token=$4
+    local output_path=$5
+    
+    local url="https://api.github.com/repos/$repo/contents/$file_path?ref=$branch"
+    
+    if [ -n "$token" ]; then
+        local response=$(curl -s -H "Authorization: Bearer $token" -H "Accept: application/vnd.github.v3.raw" "$url")
+    else
+        local response=$(curl -s -H "Accept: application/vnd.github.v3.raw" "$url")
+    fi
+    
+    # Vérifier si c'est une erreur JSON
+    if echo "$response" | grep -q '"message"'; then
+        return 1
+    fi
+    
+    # Sauvegarder le contenu
+    echo "$response" > "$output_path"
+    return 0
+}
+
 # Fonction pour télécharger et extraire une release GitHub
 download_release() {
     local repo=$1
@@ -139,13 +165,37 @@ download_release() {
     sudo mkdir -p "$dest_dir"
     sudo chown "$APP_USER:$APP_USER" "$dest_dir"
     
-    # Copier tous les fichiers sauf .git et node_modules
-    sudo -u "$APP_USER" rsync -a --exclude='.git' --exclude='node_modules' --exclude='.next' "$extracted_dir/" "$dest_dir/"
+    # Vérifier que rsync est disponible, sinon utiliser cp
+    if command_exists rsync; then
+        print_info "Copie des fichiers avec rsync..."
+        sudo -u "$APP_USER" rsync -a --exclude='.git' --exclude='node_modules' --exclude='.next' "$extracted_dir/" "$dest_dir/"
+    else
+        print_info "rsync non disponible, utilisation de cp..."
+        sudo -u "$APP_USER" cp -r "$extracted_dir"/* "$dest_dir/" 2>/dev/null || {
+            # Si cp échoue, essayer avec find
+            find "$extracted_dir" -mindepth 1 -maxdepth 1 -exec sudo -u "$APP_USER" cp -r {} "$dest_dir/" \;
+        }
+    fi
+    
+    # Vérifier que package.json a été copié
+    if [ ! -f "$dest_dir/package.json" ]; then
+        print_error "package.json n'a pas été copié correctement"
+        print_info "Répertoire source: $extracted_dir"
+        print_info "Répertoire destination: $dest_dir"
+        print_info "Fichiers dans le répertoire source:"
+        ls -la "$extracted_dir" | head -10
+        rm -rf "$temp_dir"
+        return 1
+    fi
+    
+    # S'assurer que les permissions sont correctes
+    sudo chown -R "$APP_USER:$APP_USER" "$dest_dir"
     
     # Nettoyer
     rm -rf "$temp_dir"
     
     print_success "Release $version téléchargée et installée"
+    print_info "Vérification: package.json trouvé dans $dest_dir"
 }
 
 # Fonction pour détecter le système d'exploitation
@@ -387,6 +437,17 @@ install_application() {
     
     # Aller dans le répertoire de l'application
     cd "$APP_DIR"
+    
+    # Vérifier que package.json existe
+    if [ ! -f "package.json" ]; then
+        print_error "package.json non trouvé dans $APP_DIR"
+        print_info "Contenu du répertoire:"
+        ls -la "$APP_DIR" | head -20
+        print_error "L'installation a échoué. Vérifiez que les fichiers ont été correctement téléchargés."
+        exit 1
+    fi
+    
+    print_success "Fichiers de l'application vérifiés (package.json trouvé)"
     
     # Installer les dépendances npm
     print_info "Installation des dépendances npm (cela peut prendre plusieurs minutes)..."
