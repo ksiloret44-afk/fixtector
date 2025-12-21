@@ -478,8 +478,25 @@ install_application() {
             print_info "[DEBUG] URL repository: ${repo_url//${GITHUB_TOKEN}/***}"
             print_info "[DEBUG] Répertoire temporaire: $temp_repo_dir"
             
+            # Récupérer le dernier tag AVANT de cloner
+            print_info "[DEBUG] Récupération du dernier tag avant clonage..."
+            local latest_tag_for_clone=$(get_latest_release "$GITHUB_REPO" "$GITHUB_TOKEN")
+            print_info "[DEBUG] Dernier tag à utiliser: $latest_tag_for_clone"
+            
             if sudo -u "$APP_USER" git clone "$repo_url" "$temp_repo_dir" 2>&1 | tee /tmp/git-clone.log; then
                 print_success "Repository cloné avec succès"
+                
+                # Checkout le dernier tag au lieu de main
+                if [ -n "$latest_tag_for_clone" ]; then
+                    print_info "[DEBUG] Checkout du tag $latest_tag_for_clone..."
+                    cd "$temp_repo_dir"
+                    if sudo -u "$APP_USER" git checkout "$latest_tag_for_clone" 2>&1; then
+                        print_success "[DEBUG] Checkout réussi sur $latest_tag_for_clone"
+                    else
+                        print_warning "[DEBUG] Échec du checkout, utilisation de la branche main"
+                    fi
+                    cd - > /dev/null
+                fi
                 
                 # Vérifier la version dans package.json du clone
                 if [ -f "$temp_repo_dir/package.json" ]; then
