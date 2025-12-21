@@ -52,19 +52,25 @@ echo "  Diagnostic et correction installation"
 echo "=========================================="
 echo ""
 
-# Demander le token GitHub (optionnel si repository public)
-read -p "Token GitHub (optionnel, laisser vide si repository public): " GITHUB_TOKEN
-
-# Tester si le repository est public en essayant sans token
+# Tester si le repository est public AVANT de demander le token
 print_info "Vérification de l'accès au repository..."
-if curl -s -o /dev/null -w "%{http_code}" "https://api.github.com/repos/$GITHUB_REPO" | grep -q "200"; then
+REPO_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.github.com/repos/$GITHUB_REPO" 2>/dev/null || echo "000")
+
+if [ "$REPO_STATUS" = "200" ]; then
     print_success "Repository accessible sans authentification (repository public)"
     GITHUB_TOKEN=""  # Pas besoin de token pour un repository public
-elif [ -z "$GITHUB_TOKEN" ]; then
-    print_warning "Repository semble privé, mais aucun token fourni"
-    print_info "Tentative de clonage sans token..."
+    print_info "Aucun token nécessaire, clonage direct..."
+elif [ "$REPO_STATUS" = "404" ] || [ "$REPO_STATUS" = "000" ]; then
+    print_warning "Repository semble privé ou inaccessible (code: $REPO_STATUS)"
+    read -p "Token GitHub (requis pour repository privé, appuyez sur Entrée pour essayer sans): " GITHUB_TOKEN
+    if [ -z "$GITHUB_TOKEN" ]; then
+        print_warning "Aucun token fourni, tentative de clonage sans token..."
+    else
+        print_info "Token GitHub fourni, utilisation pour repository privé"
+    fi
 else
-    print_info "Token GitHub fourni, utilisation pour repository privé"
+    print_warning "Statut du repository inconnu (code: $REPO_STATUS)"
+    read -p "Token GitHub (optionnel, appuyez sur Entrée pour essayer sans): " GITHUB_TOKEN
 fi
 
 # Vérifier que le répertoire existe
