@@ -635,25 +635,25 @@ NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
 # TWILIO_PHONE_NUMBER=+33612345678
 EOF
     
-    # Définir les permissions correctes
+    # Définir les permissions correctes (une seule fois)
     sudo chown "$APP_USER:$APP_USER" "$APP_DIR/.env.local"
     sudo chmod 640 "$APP_DIR/.env.local"
     
-    # S'assurer que le fichier appartient à l'utilisateur de l'application et est lisible
-    sudo chown "$APP_USER:$APP_USER" .env.local
-    sudo chmod 640 .env.local  # 640 = rw-r----- (propriétaire peut lire/écrire, groupe peut lire)
-    
     # Vérifier que l'utilisateur peut lire le fichier
-    if sudo -u "$APP_USER" test -r .env.local; then
+    if sudo -u "$APP_USER" test -r "$APP_DIR/.env.local"; then
         print_success "Fichier .env.local créé avec les bonnes permissions (640)"
     else
         print_warning "Problème de permissions sur .env.local, correction..."
-        sudo chown "$APP_USER:$APP_USER" .env.local
-        sudo chmod 644 .env.local  # 644 = rw-r--r-- (plus permissif si 640 ne fonctionne pas)
-        if sudo -u "$APP_USER" test -r .env.local; then
-            print_success "Permissions corrigées"
+        sudo chown "$APP_USER:$APP_USER" "$APP_DIR/.env.local"
+        sudo chmod 644 "$APP_DIR/.env.local"  # 644 = rw-r--r-- (plus permissif si 640 ne fonctionne pas)
+        if sudo -u "$APP_USER" test -r "$APP_DIR/.env.local"; then
+            print_success "Permissions corrigées (644)"
         else
             print_error "Impossible de corriger les permissions de .env.local"
+            print_info "Vérification manuelle nécessaire:"
+            echo "  sudo ls -la $APP_DIR/.env.local"
+            echo "  sudo chown $APP_USER:$APP_USER $APP_DIR/.env.local"
+            echo "  sudo chmod 644 $APP_DIR/.env.local"
         fi
     fi
     
