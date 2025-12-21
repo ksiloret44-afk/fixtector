@@ -23,6 +23,9 @@ PORT="3000"
 DOMAIN=""
 EMAIL=""
 WEB_SERVER=""  # nginx, apache, ou les deux
+GITHUB_REPO="ksiloret44-afk/fixtector"
+GITHUB_TOKEN=""  # Optionnel, pour repository privé
+INSTALL_METHOD=""  # "release" ou "local"
 
 # Fonction pour afficher les messages
 print_info() {
@@ -44,6 +47,105 @@ print_error() {
 # Fonction pour vérifier si la commande existe
 command_exists() {
     command -v "$1" >/dev/null 2>&1
+}
+
+# Fonction pour récupérer la dernière release depuis GitHub
+get_latest_release() {
+    local repo=$1
+    local token=$2
+    
+    local headers="Accept: application/vnd.github.v3+json"
+    if [ -n "$token" ]; then
+        headers="Authorization: Bearer $token\n$headers"
+    fi
+    
+    local url="https://api.github.com/repos/$repo/releases/latest"
+    
+    if [ -n "$token" ]; then
+        local response=$(curl -s -H "Authorization: Bearer $token" -H "Accept: application/vnd.github.v3+json" "$url")
+    else
+        local response=$(curl -s -H "Accept: application/vnd.github.v3+json" "$url")
+    fi
+    
+    if echo "$response" | grep -q '"tag_name"'; then
+        echo "$response" | grep '"tag_name"' | head -1 | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/'
+    else
+        # Si pas de release, essayer les tags
+        local tags_url="https://api.github.com/repos/$repo/tags?per_page=1"
+        if [ -n "$token" ]; then
+            local tags_response=$(curl -s -H "Authorization: Bearer $token" -H "Accept: application/vnd.github.v3+json" "$tags_url")
+        else
+            local tags_response=$(curl -s -H "Accept: application/vnd.github.v3+json" "$tags_url")
+        fi
+        
+        if echo "$tags_response" | grep -q '"name"'; then
+            echo "$tags_response" | grep '"name"' | head -1 | sed -E 's/.*"name":\s*"([^"]+)".*/\1/'
+        else
+            return 1
+        fi
+    fi
+}
+
+# Fonction pour télécharger et extraire une release GitHub
+download_release() {
+    local repo=$1
+    local version=$2
+    local token=$3
+    local dest_dir=$4
+    
+    print_info "Téléchargement de la version $version depuis GitHub..."
+    
+    # Construire l'URL de téléchargement
+    local download_url="https://github.com/$repo/archive/refs/tags/$version.zip"
+    
+    # Créer un répertoire temporaire
+    local temp_dir=$(mktemp -d)
+    local zip_file="$temp_dir/release.zip"
+    
+    # Télécharger le ZIP
+    if [ -n "$token" ]; then
+        if ! curl -sL -H "Authorization: Bearer $token" -o "$zip_file" "$download_url"; then
+            print_error "Impossible de télécharger la release"
+            rm -rf "$temp_dir"
+            return 1
+        fi
+    else
+        if ! curl -sL -o "$zip_file" "$download_url"; then
+            print_error "Impossible de télécharger la release"
+            rm -rf "$temp_dir"
+            return 1
+        fi
+    fi
+    
+    # Extraire le ZIP
+    print_info "Extraction de l'archive..."
+    if ! unzip -q "$zip_file" -d "$temp_dir"; then
+        print_error "Impossible d'extraire l'archive"
+        rm -rf "$temp_dir"
+        return 1
+    fi
+    
+    # Trouver le dossier extrait (format: repo-version)
+    local extracted_dir=$(find "$temp_dir" -mindepth 1 -maxdepth 1 -type d | head -1)
+    
+    if [ -z "$extracted_dir" ] || [ ! -f "$extracted_dir/package.json" ]; then
+        print_error "Structure de l'archive invalide"
+        rm -rf "$temp_dir"
+        return 1
+    fi
+    
+    # Copier les fichiers vers le répertoire de destination
+    print_info "Installation des fichiers..."
+    sudo mkdir -p "$dest_dir"
+    sudo chown "$APP_USER:$APP_USER" "$dest_dir"
+    
+    # Copier tous les fichiers sauf .git et node_modules
+    sudo -u "$APP_USER" rsync -a --exclude='.git' --exclude='node_modules' --exclude='.next' "$extracted_dir/" "$dest_dir/"
+    
+    # Nettoyer
+    rm -rf "$temp_dir"
+    
+    print_success "Release $version téléchargée et installée"
 }
 
 # Fonction pour détecter le système d'exploitation
@@ -242,14 +344,45 @@ install_application() {
     sudo mkdir -p "$APP_DIR"
     sudo chown "$APP_USER:$APP_USER" "$APP_DIR"
     
-    # Si on est dans le répertoire du projet, copier les fichiers
-    if [ -f "package.json" ]; then
-        print_info "Copie des fichiers de l'application..."
-        sudo -u "$APP_USER" cp -r . "$APP_DIR/"
-        sudo -u "$APP_USER" rm -rf "$APP_DIR/.git" "$APP_DIR/node_modules" 2>/dev/null || true
+    # Déterminer la méthode d'installation
+    if [ "$INSTALL_METHOD" = "release" ]; then
+        # Télécharger depuis GitHub
+        local latest_version=$(get_latest_release "$GITHUB_REPO" "$GITHUB_TOKEN")
+        
+        if [ -z "$latest_version" ]; then
+            print_error "Impossible de récupérer la dernière version depuis GitHub"
+            print_info "Vérifiez votre connexion internet et le repository: $GITHUB_REPO"
+            exit 1
+        fi
+        
+        print_success "Dernière version trouvée: $latest_version"
+        
+        # Vérifier si unzip est installé
+        if ! command_exists unzip; then
+            print_info "Installation de unzip..."
+            if [ "$OS" = "ubuntu" ] || [ "$OS" = "debian" ]; then
+                sudo apt install -y unzip
+            elif [ "$OS" = "centos" ] || [ "$OS" = "rocky" ] || [ "$OS" = "almalinux" ]; then
+                sudo yum install -y unzip
+            fi
+        fi
+        
+        # Télécharger et installer la release
+        if ! download_release "$GITHUB_REPO" "$latest_version" "$GITHUB_TOKEN" "$APP_DIR"; then
+            print_error "Échec du téléchargement de la release"
+            exit 1
+        fi
     else
-        print_warning "package.json non trouvé dans le répertoire actuel"
-        print_info "Vous devrez copier les fichiers manuellement dans $APP_DIR"
+        # Installation depuis les fichiers locaux
+        if [ -f "package.json" ]; then
+            print_info "Copie des fichiers de l'application..."
+            sudo -u "$APP_USER" cp -r . "$APP_DIR/"
+            sudo -u "$APP_USER" rm -rf "$APP_DIR/.git" "$APP_DIR/node_modules" "$APP_DIR/.next" 2>/dev/null || true
+        else
+            print_error "package.json non trouvé dans le répertoire actuel"
+            print_info "Utilisez l'option --from-release pour télécharger depuis GitHub"
+            exit 1
+        fi
     fi
     
     # Aller dans le répertoire de l'application
@@ -856,6 +989,12 @@ show_summary() {
         echo "  sudo certbot --nginx -d votre-domaine.com"
     fi
     echo ""
+    # Afficher la version installée
+    if [ -f "$APP_DIR/package.json" ]; then
+        INSTALLED_VERSION=$(grep '"version"' "$APP_DIR/package.json" | head -1 | sed -E 's/.*"version":\s*"([^"]+)".*/\1/')
+        echo "  - Version installée: $INSTALLED_VERSION"
+    fi
+    echo ""
     print_success "Compte administrateur créé automatiquement:"
     echo "   Email: admin@admin.com"
     echo "   Mot de passe: admin123"
@@ -865,6 +1004,11 @@ show_summary() {
     echo "  1. Configurer SMTP/SMS dans $APP_DIR/.env.local"
     echo "  2. Configurer les informations légales de l'entreprise"
     echo ""
+    if [ "$INSTALL_METHOD" = "release" ]; then
+        echo "Pour mettre à jour l'application, utilisez:"
+        echo "  sudo $APP_DIR/update.sh"
+        echo ""
+    fi
 }
 
 # Fonction principale
@@ -886,6 +1030,33 @@ main() {
     
     # Demander les informations
     echo ""
+    echo "Méthode d'installation:"
+    echo "  1) Télécharger la dernière release depuis GitHub (recommandé)"
+    echo "  2) Utiliser les fichiers locaux"
+    read -p "Votre choix (1-2) [1]: " INSTALL_CHOICE
+    INSTALL_CHOICE=${INSTALL_CHOICE:-1}
+    
+    case $INSTALL_CHOICE in
+        1)
+            INSTALL_METHOD="release"
+            print_info "Installation depuis GitHub"
+            
+            # Demander le token GitHub si repository privé
+            read -p "Token GitHub (optionnel, pour repository privé): " GITHUB_TOKEN
+            if [ -n "$GITHUB_TOKEN" ]; then
+                print_info "Token GitHub fourni pour repository privé"
+            fi
+            ;;
+        2)
+            INSTALL_METHOD="local"
+            print_info "Installation depuis les fichiers locaux"
+            ;;
+        *)
+            INSTALL_METHOD="release"
+            print_info "Choix par défaut: Installation depuis GitHub"
+            ;;
+    esac
+    
     read -p "Domaine (laisser vide pour localhost): " DOMAIN
     read -p "Email pour Let's Encrypt (laisser vide pour ignorer SSL): " EMAIL
     
@@ -922,14 +1093,22 @@ main() {
     
     # Copier les scripts utilitaires si présents
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    
+    # Toujours copier update.sh depuis le script d'installation (même si installé depuis release)
     if [ -f "$SCRIPT_DIR/update.sh" ]; then
         print_info "Copie du script de mise à jour..."
         sudo -u "$APP_USER" cp "$SCRIPT_DIR/update.sh" "$APP_DIR/"
         sudo chmod +x "$APP_DIR/update.sh"
+    elif [ -f "$APP_DIR/update.sh" ]; then
+        # Si update.sh existe déjà dans l'application téléchargée, s'assurer qu'il est exécutable
+        sudo chmod +x "$APP_DIR/update.sh"
     fi
+    
     if [ -f "$SCRIPT_DIR/health-check.sh" ]; then
         print_info "Copie du script de vérification..."
         sudo -u "$APP_USER" cp "$SCRIPT_DIR/health-check.sh" "$APP_DIR/"
+        sudo chmod +x "$APP_DIR/health-check.sh"
+    elif [ -f "$APP_DIR/health-check.sh" ]; then
         sudo chmod +x "$APP_DIR/health-check.sh"
     fi
     
