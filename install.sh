@@ -609,10 +609,9 @@ create_env_file() {
         NEXT_PUBLIC_BASE_URL="https://${DOMAIN}"
     fi
     
-    # Créer le fichier .env.local avec les bonnes permissions dès le départ
-    # Utiliser un fichier temporaire puis le déplacer pour éviter les problèmes de permissions
-    local temp_env=$(mktemp)
-    cat > "$temp_env" << EOF
+    # Créer le fichier .env.local avec les bonnes permissions
+    # Utiliser tee avec sudo pour créer le fichier directement
+    sudo tee "$APP_DIR/.env.local" > /dev/null << EOF
 # Base de données principale
 DATABASE_URL_MAIN=file:./prisma/main.db
 
@@ -636,11 +635,9 @@ NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
 # TWILIO_PHONE_NUMBER=+33612345678
 EOF
     
-    # Copier le fichier temporaire vers .env.local avec les bonnes permissions
-    sudo cp "$temp_env" .env.local
-    sudo chown "$APP_USER:$APP_USER" .env.local
-    sudo chmod 640 .env.local
-    rm -f "$temp_env"
+    # Définir les permissions correctes
+    sudo chown "$APP_USER:$APP_USER" "$APP_DIR/.env.local"
+    sudo chmod 640 "$APP_DIR/.env.local"
     
     # S'assurer que le fichier appartient à l'utilisateur de l'application et est lisible
     sudo chown "$APP_USER:$APP_USER" .env.local
