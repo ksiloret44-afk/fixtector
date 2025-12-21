@@ -441,16 +441,29 @@ install_application() {
     
     # Déterminer la méthode d'installation
     if [ "$INSTALL_METHOD" = "release" ]; then
+        print_info "[DEBUG] Méthode d'installation: release"
+        print_info "[DEBUG] GITHUB_TOKEN fourni: $([ -n "$GITHUB_TOKEN" ] && echo 'OUI' || echo 'NON')"
+        print_info "[DEBUG] Git disponible: $([ command_exists git ] && echo 'OUI' || echo 'NON')"
+        
         # Option 1 : Essayer de cloner le repository (plus fiable pour les repos privés)
         if command_exists git && [ -n "$GITHUB_TOKEN" ]; then
             print_info "Clonage du repository GitHub (méthode recommandée pour repositories privés)..."
+            print_info "[DEBUG] Clonage de la branche main (dernière version du code)"
             
             # Construire l'URL avec le token
             local repo_url="https://${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git"
             local temp_repo_dir=$(mktemp -d)
+            print_info "[DEBUG] URL repository: ${repo_url//${GITHUB_TOKEN}/***}"
+            print_info "[DEBUG] Répertoire temporaire: $temp_repo_dir"
             
             if sudo -u "$APP_USER" git clone "$repo_url" "$temp_repo_dir" 2>&1 | tee /tmp/git-clone.log; then
                 print_success "Repository cloné avec succès"
+                
+                # Vérifier la version dans package.json du clone
+                if [ -f "$temp_repo_dir/package.json" ]; then
+                    local cloned_version=$(grep -oP '"version":\s*"\K[^"]+' "$temp_repo_dir/package.json" || echo "NON TROUVÉ")
+                    print_info "[DEBUG] Version dans package.json du clone: $cloned_version"
+                fi
                 
                 # Vérifier que package.json existe dans le clone
                 if [ -f "$temp_repo_dir/package.json" ]; then
@@ -485,6 +498,7 @@ install_application() {
         # Option 2 : Télécharger depuis GitHub release (si Git a échoué ou pas de token)
         if [ ! -f "$APP_DIR/package.json" ]; then
             print_info "Téléchargement depuis GitHub release..."
+            print_info "[DEBUG] Pas de token ou Git clone a échoué, utilisation de download_release"
             local latest_version=$(get_latest_release "$GITHUB_REPO" "$GITHUB_TOKEN")
             
             if [ -z "$latest_version" ]; then
