@@ -52,12 +52,19 @@ echo "  Diagnostic et correction installation"
 echo "=========================================="
 echo ""
 
-# Demander le token GitHub
-read -p "Token GitHub (requis pour repository privé): " GITHUB_TOKEN
+# Demander le token GitHub (optionnel si repository public)
+read -p "Token GitHub (optionnel, laisser vide si repository public): " GITHUB_TOKEN
 
-if [ -z "$GITHUB_TOKEN" ]; then
-    print_error "Token GitHub requis pour un repository privé"
-    exit 1
+# Tester si le repository est public en essayant sans token
+print_info "Vérification de l'accès au repository..."
+if curl -s -o /dev/null -w "%{http_code}" "https://api.github.com/repos/$GITHUB_REPO" | grep -q "200"; then
+    print_success "Repository accessible sans authentification (repository public)"
+    GITHUB_TOKEN=""  # Pas besoin de token pour un repository public
+elif [ -z "$GITHUB_TOKEN" ]; then
+    print_warning "Repository semble privé, mais aucun token fourni"
+    print_info "Tentative de clonage sans token..."
+else
+    print_info "Token GitHub fourni, utilisation pour repository privé"
 fi
 
 # Vérifier que le répertoire existe
@@ -113,9 +120,15 @@ if command_exists git; then
         sudo rm -rf "$APP_DIR"/* "$APP_DIR"/.git 2>/dev/null || true
     fi
     
-    local repo_url="https://${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git"
+    # Construire l'URL selon si on a un token ou non
+    if [ -n "$GITHUB_TOKEN" ]; then
+        local repo_url="https://${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git"
+    else
+        local repo_url="https://github.com/${GITHUB_REPO}.git"
+    fi
     
     print_info "Clonage directement dans $APP_DIR..."
+    print_info "URL: ${repo_url//${GITHUB_TOKEN:-token}/***}"  # Masquer le token dans les logs
     if sudo -u "$APP_USER" git clone "$repo_url" "$APP_DIR" 2>&1; then
         # Vérifier que package.json existe
         if [ -f "$APP_DIR/package.json" ]; then
@@ -149,8 +162,14 @@ fi
 # Méthode 2 : Télécharger depuis la release
 print_info "Méthode 2 : Téléchargement depuis la release GitHub..."
 if command_exists curl && command_exists unzip; then
-    local latest_version=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-        -H "Accept: application/vnd.github.v3+json" \
+    # Construire les headers selon si on a un token ou non
+    if [ -n "$GITHUB_TOKEN" ]; then
+        local headers=(-H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json")
+    else
+        local headers=(-H "Accept: application/vnd.github.v3+json")
+    fi
+    
+    local latest_version=$(curl -s "${headers[@]}" \
         "https://api.github.com/repos/$GITHUB_REPO/releases/latest" | \
         grep '"tag_name"' | head -1 | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/')
     
@@ -161,7 +180,21 @@ if command_exists curl && command_exists unzip; then
         local zip_file="$temp_dir/release.zip"
         
         print_info "Téléchargement de $download_url..."
-        if curl -sL -H "Authorization: Bearer $GITHUB_TOKEN" -o "$zip_file" "$download_url"; then
+        if [ -n "$GITHUB_TOKEN" ]; then
+            if curl -sL -H "Authorization: Bearer $GITHUB_TOKEN" -o "$zip_file" "$download_url"; then
+                local download_success=true
+            else
+                local download_success=false
+            fi
+        else
+            if curl -sL -o "$zip_file" "$download_url"; then
+                local download_success=true
+            else
+                local download_success=false
+            fi
+        fi
+        
+        if [ "$download_success" = true ]; then
             if [ -s "$zip_file" ]; then
                 print_info "Extraction de l'archive..."
                 if unzip -q "$zip_file" -d "$temp_dir"; then
