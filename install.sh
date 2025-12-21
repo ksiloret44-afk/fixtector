@@ -67,22 +67,24 @@ get_latest_release() {
         local response=$(curl -s -H "Accept: application/vnd.github.v3+json" "$url")
     fi
     
-    if echo "$response" | grep -q '"tag_name"'; then
+    # Toujours utiliser les tags pour avoir la dernière version (même s'il n'y a pas de release)
+    # Les tags sont plus à jour que les releases
+    local tags_url="https://api.github.com/repos/$repo/tags?per_page=1"
+    if [ -n "$token" ]; then
+        local tags_response=$(curl -s -H "Authorization: Bearer $token" -H "Accept: application/vnd.github.v3+json" "$tags_url")
+    else
+        local tags_response=$(curl -s -H "Accept: application/vnd.github.v3+json" "$tags_url")
+    fi
+    
+    if echo "$tags_response" | grep -q '"name"'; then
+        local latest_tag=$(echo "$tags_response" | grep '"name"' | head -1 | sed -E 's/.*"name":\s*"([^"]+)".*/\1/')
+        echo "$latest_tag"
+    elif echo "$response" | grep -q '"tag_name"'; then
+        # Fallback sur la release si pas de tags
         echo "$response" | grep '"tag_name"' | head -1 | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/'
     else
-        # Si pas de release, essayer les tags
-        local tags_url="https://api.github.com/repos/$repo/tags?per_page=1"
-        if [ -n "$token" ]; then
-            local tags_response=$(curl -s -H "Authorization: Bearer $token" -H "Accept: application/vnd.github.v3+json" "$tags_url")
-        else
-            local tags_response=$(curl -s -H "Accept: application/vnd.github.v3+json" "$tags_url")
-        fi
-        
-        if echo "$tags_response" | grep -q '"name"'; then
-            echo "$tags_response" | grep '"name"' | head -1 | sed -E 's/.*"name":\s*"([^"]+)".*/\1/'
-        else
-            return 1
-        fi
+        print_error "Impossible de récupérer la dernière version. Vérifiez le repository et le token."
+        return 1
     fi
 }
 
