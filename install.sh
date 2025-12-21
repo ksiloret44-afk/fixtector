@@ -176,16 +176,22 @@ download_release() {
     sudo mkdir -p "$dest_dir"
     sudo chown "$APP_USER:$APP_USER" "$dest_dir"
     
-    # Vérifier que rsync est disponible, sinon utiliser cp
-    if command_exists rsync; then
-        print_info "Copie des fichiers avec rsync..."
-        sudo -u "$APP_USER" rsync -a --exclude='.git' --exclude='node_modules' --exclude='.next' "$extracted_dir/" "$dest_dir/"
+    # Changer les permissions du répertoire source pour permettre la copie
+    sudo chmod -R u+r "$extracted_dir"
+    
+    # Copier les fichiers (utiliser cp qui est plus fiable avec sudo)
+    print_info "Copie des fichiers..."
+    
+    # Méthode 1 : Utiliser cp avec sudo puis changer le propriétaire
+    if sudo cp -r "$extracted_dir"/* "$dest_dir/" 2>&1; then
+        # Changer le propriétaire de tous les fichiers copiés
+        sudo chown -R "$APP_USER:$APP_USER" "$dest_dir"
+        print_success "Fichiers copiés avec succès"
     else
-        print_info "rsync non disponible, utilisation de cp..."
-        sudo -u "$APP_USER" cp -r "$extracted_dir"/* "$dest_dir/" 2>/dev/null || {
-            # Si cp échoue, essayer avec find
-            find "$extracted_dir" -mindepth 1 -maxdepth 1 -exec sudo -u "$APP_USER" cp -r {} "$dest_dir/" \;
-        }
+        # Méthode 2 : Copier fichier par fichier avec find
+        print_info "Tentative de copie alternative..."
+        find "$extracted_dir" -mindepth 1 -maxdepth 1 ! -name '.git' -exec sudo cp -r {} "$dest_dir/" \;
+        sudo chown -R "$APP_USER:$APP_USER" "$dest_dir"
     fi
     
     # Vérifier que package.json a été copié
@@ -193,8 +199,19 @@ download_release() {
         print_error "package.json n'a pas été copié correctement"
         print_info "Répertoire source: $extracted_dir"
         print_info "Répertoire destination: $dest_dir"
-        print_info "Fichiers dans le répertoire source:"
-        ls -la "$extracted_dir" | head -10
+        print_info "Contenu du répertoire source:"
+        sudo ls -la "$extracted_dir" | head -15
+        print_info "Contenu du répertoire destination:"
+        sudo ls -la "$dest_dir" | head -15
+        print_info "Tentative de copie manuelle de package.json..."
+        if [ -f "$extracted_dir/package.json" ]; then
+            sudo cp "$extracted_dir/package.json" "$dest_dir/"
+            sudo chown "$APP_USER:$APP_USER" "$dest_dir/package.json"
+            if [ -f "$dest_dir/package.json" ]; then
+                print_warning "package.json copié manuellement, mais d'autres fichiers peuvent manquer"
+                print_info "Essayez de copier manuellement tous les fichiers depuis $extracted_dir vers $dest_dir"
+            fi
+        fi
         rm -rf "$temp_dir"
         return 1
     fi
