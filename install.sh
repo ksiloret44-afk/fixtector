@@ -552,13 +552,35 @@ configure_prisma() {
     # Créer les bases de données
     print_info "Initialisation des bases de données..."
     sudo -u "$APP_USER" mkdir -p prisma/companies
-    sudo -u "$APP_USER" npx prisma db push --schema=prisma/schema-main.prisma --accept-data-loss || true
-    sudo -u "$APP_USER" npx prisma db push --schema=prisma/schema-company.prisma --accept-data-loss || true
+    
+    # Mettre à jour les schémas de base de données (cela créera les colonnes manquantes)
+    print_info "Mise à jour du schéma de la base de données principale..."
+    sudo -u "$APP_USER" npx prisma db push --schema=prisma/schema-main.prisma --accept-data-loss --skip-generate || {
+        print_warning "Erreur lors de db push, tentative de régénération..."
+        sudo -u "$APP_USER" npx prisma generate --schema=prisma/schema-main.prisma
+        sudo -u "$APP_USER" npx prisma db push --schema=prisma/schema-main.prisma --accept-data-loss --skip-generate || true
+    }
+    
+    print_info "Mise à jour du schéma de la base de données des entreprises..."
+    sudo -u "$APP_USER" npx prisma db push --schema=prisma/schema-company.prisma --accept-data-loss --skip-generate || true
     
     # Créer l'utilisateur admin par défaut
     print_info "Création du compte administrateur par défaut..."
     if [ -f "scripts/init-db.ts" ]; then
-        sudo -u "$APP_USER" npx tsx scripts/init-db.ts || print_warning "Impossible de créer l'utilisateur admin (peut-être déjà existant)"
+        # Vérifier que .env.local existe et est lisible
+        if [ ! -f ".env.local" ] || ! sudo -u "$APP_USER" test -r .env.local; then
+            print_warning ".env.local n'existe pas ou n'est pas lisible, création..."
+            # Recréer .env.local si nécessaire
+            if [ ! -f ".env.local" ]; then
+                create_env_file
+            else
+                sudo chown "$APP_USER:$APP_USER" .env.local
+                sudo chmod 640 .env.local
+            fi
+        fi
+        
+        # Exécuter init-db.ts et ignorer les erreurs de colonnes manquantes (sera corrigé par db push)
+        sudo -u "$APP_USER" npx tsx scripts/init-db.ts 2>&1 | grep -v "suspended" || print_warning "Impossible de créer l'utilisateur admin (peut-être déjà existant ou schéma à mettre à jour)"
     else
         print_warning "Script init-db.ts non trouvé, création de l'admin ignorée"
     fi
@@ -609,9 +631,19 @@ NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
 # TWILIO_PHONE_NUMBER=+33612345678
 EOF
     
+    # S'assurer que le fichier appartient à l'utilisateur de l'application
+    sudo chown "$APP_USER:$APP_USER" .env.local
     sudo chmod 600 .env.local
     
-    print_success "Fichier .env.local créé"
+    # Vérifier que l'utilisateur peut lire le fichier
+    if sudo -u "$APP_USER" test -r .env.local; then
+        print_success "Fichier .env.local créé avec les bonnes permissions"
+    else
+        print_warning "Problème de permissions sur .env.local, correction..."
+        sudo chown "$APP_USER:$APP_USER" .env.local
+        sudo chmod 640 .env.local
+    fi
+    
     print_warning "N'oubliez pas de configurer SMTP et SMS si nécessaire dans .env.local"
 }
 
@@ -621,7 +653,22 @@ build_application() {
     
     cd "$APP_DIR"
     
-    sudo -u "$APP_USER" npm run build
+    # S'assurer que .env.local est accessible
+    if [ -f ".env.local" ]; then
+        sudo chown "$APP_USER:$APP_USER" .env.local
+        sudo chmod 640 .env.local
+    fi
+    
+    # Vérifier les permissions de tous les fichiers
+    sudo chown -R "$APP_USER:$APP_USER" .
+    
+    # Builder l'application
+    sudo -u "$APP_USER" npm run build || {
+        print_error "Erreur lors du build"
+        print_info "Vérification des erreurs de routing Next.js..."
+        print_info "Si vous voyez une erreur sur les slugs dynamiques, vérifiez les routes dans app/"
+        exit 1
+    }
     
     print_success "Application construite"
 }
