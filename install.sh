@@ -556,8 +556,9 @@ configure_prisma() {
     
     # Générer les clients Prisma
     print_info "Génération des clients Prisma..."
-    sudo -u "$APP_USER" npx prisma generate --schema=prisma/schema-main.prisma
-    sudo -u "$APP_USER" npx prisma generate --schema=prisma/schema-company.prisma
+    # Charger les variables d'environnement depuis .env.local
+    sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && set -a && [ -f .env.local ] && source .env.local && set +a && npx prisma generate --schema=prisma/schema-main.prisma"
+    sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && set -a && [ -f .env.local ] && source .env.local && set +a && npx prisma generate --schema=prisma/schema-company.prisma"
     
     # Créer les bases de données
     print_info "Initialisation des bases de données..."
@@ -565,25 +566,30 @@ configure_prisma() {
     
     # Mettre à jour les schémas de base de données (cela créera les colonnes manquantes)
     print_info "Mise à jour du schéma de la base de données principale..."
-    # Prisma charge automatiquement .env.local s'il est dans le répertoire courant
-    sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && npx prisma db push --schema=prisma/schema-main.prisma --accept-data-loss --skip-generate" || {
+    # Charger les variables d'environnement depuis .env.local et exécuter Prisma
+    sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && set -a && [ -f .env.local ] && source .env.local && set +a && npx prisma db push --schema=prisma/schema-main.prisma --accept-data-loss --skip-generate" || {
         print_warning "Erreur lors de db push, tentative de régénération..."
-        sudo -u "$APP_USER" npx prisma generate --schema=prisma/schema-main.prisma
-        sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && npx prisma db push --schema=prisma/schema-main.prisma --accept-data-loss --skip-generate" || true
+        sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && set -a && [ -f .env.local ] && source .env.local && set +a && npx prisma generate --schema=prisma/schema-main.prisma"
+        sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && set -a && [ -f .env.local ] && source .env.local && set +a && npx prisma db push --schema=prisma/schema-main.prisma --accept-data-loss --skip-generate" || {
+            print_warning "db push a échoué, mais on continue..."
+        }
     }
     
     print_info "Mise à jour du schéma de la base de données des entreprises..."
-    sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && npx prisma db push --schema=prisma/schema-company.prisma --accept-data-loss --skip-generate" || true
+    # Pour schema-company, utiliser DATABASE_URL (on le définit depuis DATABASE_URL_MAIN si nécessaire)
+    sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && set -a && [ -f .env.local ] && source .env.local && set +a && export DATABASE_URL=\${DATABASE_URL_MAIN:-file:./prisma/company.db} && npx prisma db push --schema=prisma/schema-company.prisma --accept-data-loss --skip-generate" || {
+        print_warning "db push pour schema-company a échoué, mais on continue..."
+    }
     
     # Créer l'utilisateur admin par défaut
     print_info "Création du compte administrateur par défaut..."
     if [ -f "scripts/init-db.ts" ]; then
         # S'assurer que .env.local est lisible
         sudo chown "$APP_USER:$APP_USER" .env.local
-        sudo chmod 640 .env.local
+        sudo chmod 644 .env.local
         
         # Exécuter init-db.ts (les variables d'environnement seront chargées depuis .env.local)
-        sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && npx tsx scripts/init-db.ts" 2>&1 || print_warning "Impossible de créer l'utilisateur admin (peut-être déjà existant)"
+        sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && set -a && [ -f .env.local ] && source .env.local && set +a && npx tsx scripts/init-db.ts" 2>&1 || print_warning "Impossible de créer l'utilisateur admin (peut-être déjà existant)"
     else
         print_warning "Script init-db.ts non trouvé, création de l'admin ignorée"
     fi
