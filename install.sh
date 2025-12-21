@@ -129,19 +129,30 @@ download_release() {
     local zip_file="$temp_dir/release.zip"
     
     # Télécharger le ZIP
+    print_info "Téléchargement depuis: $download_url"
     if [ -n "$token" ]; then
         if ! curl -sL -H "Authorization: Bearer $token" -o "$zip_file" "$download_url"; then
-            print_error "Impossible de télécharger la release"
+            print_error "Impossible de télécharger la release (vérifiez votre token GitHub)"
             rm -rf "$temp_dir"
             return 1
         fi
     else
         if ! curl -sL -o "$zip_file" "$download_url"; then
             print_error "Impossible de télécharger la release"
+            print_info "Si le repository est privé, vous devez fournir un token GitHub"
             rm -rf "$temp_dir"
             return 1
         fi
     fi
+    
+    # Vérifier que le fichier ZIP a été téléchargé et n'est pas vide
+    if [ ! -s "$zip_file" ]; then
+        print_error "Le fichier ZIP téléchargé est vide ou invalide"
+        rm -rf "$temp_dir"
+        return 1
+    fi
+    
+    print_info "Archive téléchargée: $(du -h "$zip_file" | cut -f1)"
     
     # Extraire le ZIP
     print_info "Extraction de l'archive..."
