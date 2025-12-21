@@ -560,6 +560,12 @@ install_application() {
         exit 1
     fi
     
+    # Vérifier la version installée
+    if [ -f "$APP_DIR/package.json" ]; then
+        local installed_version=$(grep -oP '"version":\s*"\K[^"]+' "$APP_DIR/package.json" || echo "NON TROUVÉ")
+        print_info "[DEBUG] Version installée dans $APP_DIR/package.json: $installed_version"
+    fi
+    
     print_success "Fichiers de l'application vérifiés (package.json trouvé)"
     
     # Installer les dépendances npm
