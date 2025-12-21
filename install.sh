@@ -71,13 +71,35 @@ get_latest_release() {
     
     # Debug: afficher les premiers tags trouvés
     if echo "$tags_response" | grep -q '"name"'; then
-        print_info "[DEBUG] Tags trouvés:"
+        print_info "[DEBUG] Tags trouvés (bruts):"
         echo "$tags_response" | grep '"name"' | head -5 | sed -E 's/.*"name":\s*"([^"]+)".*/\1/' | while read tag; do
             print_info "[DEBUG]   - $tag"
         done
         
-        local latest_tag=$(echo "$tags_response" | grep '"name"' | head -1 | sed -E 's/.*"name":\s*"([^"]+)".*/\1/')
-        print_success "[DEBUG] Dernier tag sélectionné: $latest_tag"
+        # Extraire tous les tags et les trier par version (semver)
+        # Enlever le préfixe 'v' pour le tri, puis le remettre
+        local all_tags=$(echo "$tags_response" | grep '"name"' | sed -E 's/.*"name":\s*"([^"]+)".*/\1/')
+        
+        # Trier les tags par version (semver) - version la plus récente en premier
+        local latest_tag=$(echo "$all_tags" | while read tag; do
+            # Enlever le 'v' pour le tri
+            local version=$(echo "$tag" | sed 's/^v//')
+            # Extraire les parties de version (major.minor.patch)
+            local major=$(echo "$version" | cut -d. -f1)
+            local minor=$(echo "$version" | cut -d. -f2)
+            local patch=$(echo "$version" | cut -d. -f3 | cut -d'-' -f1)
+            # Formater pour le tri numérique
+            printf "%03d.%03d.%03d %s\n" "$major" "$minor" "${patch:-0}" "$tag"
+        done | sort -r -t. -k1,1n -k2,2n -k3,3n | head -1 | awk '{print $2}')
+        
+        # Si le tri a échoué, utiliser le premier tag trouvé
+        if [ -z "$latest_tag" ]; then
+            latest_tag=$(echo "$tags_response" | grep '"name"' | head -1 | sed -E 's/.*"name":\s*"([^"]+)".*/\1/')
+            print_warning "[DEBUG] Tri échoué, utilisation du premier tag: $latest_tag"
+        else
+            print_success "[DEBUG] Dernier tag sélectionné (après tri): $latest_tag"
+        fi
+        
         echo "$latest_tag"
     else
         print_warning "[DEBUG] Aucun tag trouvé dans la réponse, tentative avec releases..."
