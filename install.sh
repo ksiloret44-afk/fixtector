@@ -544,6 +544,16 @@ configure_prisma() {
     
     cd "$APP_DIR"
     
+    # IMPORTANT : Créer .env.local AVANT de faire db push (Prisma a besoin des variables d'environnement)
+    if [ ! -f ".env.local" ]; then
+        print_warning ".env.local n'existe pas, création avant configuration Prisma..."
+        create_env_file
+    else
+        # S'assurer que .env.local est lisible
+        sudo chown "$APP_USER:$APP_USER" .env.local
+        sudo chmod 640 .env.local
+    fi
+    
     # Générer les clients Prisma
     print_info "Génération des clients Prisma..."
     sudo -u "$APP_USER" npx prisma generate --schema=prisma/schema-main.prisma
@@ -555,32 +565,25 @@ configure_prisma() {
     
     # Mettre à jour les schémas de base de données (cela créera les colonnes manquantes)
     print_info "Mise à jour du schéma de la base de données principale..."
-    sudo -u "$APP_USER" npx prisma db push --schema=prisma/schema-main.prisma --accept-data-loss --skip-generate || {
+    # Prisma charge automatiquement .env.local s'il est dans le répertoire courant
+    sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && npx prisma db push --schema=prisma/schema-main.prisma --accept-data-loss --skip-generate" || {
         print_warning "Erreur lors de db push, tentative de régénération..."
         sudo -u "$APP_USER" npx prisma generate --schema=prisma/schema-main.prisma
-        sudo -u "$APP_USER" npx prisma db push --schema=prisma/schema-main.prisma --accept-data-loss --skip-generate || true
+        sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && npx prisma db push --schema=prisma/schema-main.prisma --accept-data-loss --skip-generate" || true
     }
     
     print_info "Mise à jour du schéma de la base de données des entreprises..."
-    sudo -u "$APP_USER" npx prisma db push --schema=prisma/schema-company.prisma --accept-data-loss --skip-generate || true
+    sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && npx prisma db push --schema=prisma/schema-company.prisma --accept-data-loss --skip-generate" || true
     
     # Créer l'utilisateur admin par défaut
     print_info "Création du compte administrateur par défaut..."
     if [ -f "scripts/init-db.ts" ]; then
-        # Vérifier que .env.local existe et est lisible
-        if [ ! -f ".env.local" ] || ! sudo -u "$APP_USER" test -r .env.local; then
-            print_warning ".env.local n'existe pas ou n'est pas lisible, création..."
-            # Recréer .env.local si nécessaire
-            if [ ! -f ".env.local" ]; then
-                create_env_file
-            else
-                sudo chown "$APP_USER:$APP_USER" .env.local
-                sudo chmod 640 .env.local
-            fi
-        fi
+        # S'assurer que .env.local est lisible
+        sudo chown "$APP_USER:$APP_USER" .env.local
+        sudo chmod 640 .env.local
         
-        # Exécuter init-db.ts et ignorer les erreurs de colonnes manquantes (sera corrigé par db push)
-        sudo -u "$APP_USER" npx tsx scripts/init-db.ts 2>&1 | grep -v "suspended" || print_warning "Impossible de créer l'utilisateur admin (peut-être déjà existant ou schéma à mettre à jour)"
+        # Exécuter init-db.ts (les variables d'environnement seront chargées depuis .env.local)
+        sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && npx tsx scripts/init-db.ts" 2>&1 || print_warning "Impossible de créer l'utilisateur admin (peut-être déjà existant)"
     else
         print_warning "Script init-db.ts non trouvé, création de l'admin ignorée"
     fi
@@ -606,8 +609,8 @@ create_env_file() {
         NEXT_PUBLIC_BASE_URL="https://${DOMAIN}"
     fi
     
-    # Créer le fichier .env.local
-    sudo -u "$APP_USER" cat > .env.local << EOF
+    # Créer le fichier .env.local avec les bonnes permissions dès le départ
+    sudo -u "$APP_USER" bash -c "cat > .env.local" << EOF
 # Base de données principale
 DATABASE_URL_MAIN=file:./prisma/main.db
 
@@ -631,17 +634,22 @@ NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
 # TWILIO_PHONE_NUMBER=+33612345678
 EOF
     
-    # S'assurer que le fichier appartient à l'utilisateur de l'application
+    # S'assurer que le fichier appartient à l'utilisateur de l'application et est lisible
     sudo chown "$APP_USER:$APP_USER" .env.local
-    sudo chmod 600 .env.local
+    sudo chmod 640 .env.local  # 640 = rw-r----- (propriétaire peut lire/écrire, groupe peut lire)
     
     # Vérifier que l'utilisateur peut lire le fichier
     if sudo -u "$APP_USER" test -r .env.local; then
-        print_success "Fichier .env.local créé avec les bonnes permissions"
+        print_success "Fichier .env.local créé avec les bonnes permissions (640)"
     else
         print_warning "Problème de permissions sur .env.local, correction..."
         sudo chown "$APP_USER:$APP_USER" .env.local
-        sudo chmod 640 .env.local
+        sudo chmod 644 .env.local  # 644 = rw-r--r-- (plus permissif si 640 ne fonctionne pas)
+        if sudo -u "$APP_USER" test -r .env.local; then
+            print_success "Permissions corrigées"
+        else
+            print_error "Impossible de corriger les permissions de .env.local"
+        fi
     fi
     
     print_warning "N'oubliez pas de configurer SMTP et SMS si nécessaire dans .env.local"
@@ -1267,8 +1275,8 @@ main() {
     install_system_dependencies
     create_app_user
     install_application
+    create_env_file  # CRÉER .env.local AVANT configure_prisma (Prisma a besoin des variables d'environnement)
     configure_prisma
-    create_env_file
     build_application
     configure_pm2
     configure_nginx
