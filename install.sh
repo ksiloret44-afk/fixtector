@@ -609,10 +609,8 @@ create_env_file() {
         NEXT_PUBLIC_BASE_URL="https://${DOMAIN}"
     fi
     
-    # Créer le fichier .env.local avec les bonnes permissions
-    # Utiliser tee avec sudo pour créer le fichier directement
-    sudo tee "$APP_DIR/.env.local" > /dev/null << EOF
-# Base de données principale
+    # Créer le contenu du fichier .env.local
+    local env_content="# Base de données principale
 DATABASE_URL_MAIN=file:./prisma/main.db
 
 # NextAuth
@@ -633,28 +631,25 @@ NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
 # TWILIO_ACCOUNT_SID=votre-sid
 # TWILIO_AUTH_TOKEN=votre-token
 # TWILIO_PHONE_NUMBER=+33612345678
-EOF
+"
     
-    # Définir les permissions correctes (une seule fois)
+    # Créer le fichier .env.local de manière simple et fiable
+    echo "$env_content" | sudo tee "$APP_DIR/.env.local" > /dev/null
+    
+    # Définir les permissions correctes
     sudo chown "$APP_USER:$APP_USER" "$APP_DIR/.env.local"
-    sudo chmod 640 "$APP_DIR/.env.local"
+    sudo chmod 644 "$APP_DIR/.env.local"  # 644 pour que l'utilisateur puisse lire
     
-    # Vérifier que l'utilisateur peut lire le fichier
-    if sudo -u "$APP_USER" test -r "$APP_DIR/.env.local"; then
-        print_success "Fichier .env.local créé avec les bonnes permissions (640)"
+    # Vérifier que le fichier existe et est lisible
+    if [ -f "$APP_DIR/.env.local" ] && sudo -u "$APP_USER" test -r "$APP_DIR/.env.local"; then
+        print_success "Fichier .env.local créé avec succès"
     else
-        print_warning "Problème de permissions sur .env.local, correction..."
-        sudo chown "$APP_USER:$APP_USER" "$APP_DIR/.env.local"
-        sudo chmod 644 "$APP_DIR/.env.local"  # 644 = rw-r--r-- (plus permissif si 640 ne fonctionne pas)
-        if sudo -u "$APP_USER" test -r "$APP_DIR/.env.local"; then
-            print_success "Permissions corrigées (644)"
-        else
-            print_error "Impossible de corriger les permissions de .env.local"
-            print_info "Vérification manuelle nécessaire:"
-            echo "  sudo ls -la $APP_DIR/.env.local"
-            echo "  sudo chown $APP_USER:$APP_USER $APP_DIR/.env.local"
-            echo "  sudo chmod 644 $APP_DIR/.env.local"
-        fi
+        print_error "Échec de la création de .env.local"
+        print_info "Création manuelle nécessaire:"
+        echo "  sudo -u $APP_USER bash -c 'cat > $APP_DIR/.env.local << \"ENVEOF\""
+        echo "$env_content"
+        echo "ENVEOF'"
+        exit 1
     fi
     
     print_warning "N'oubliez pas de configurer SMTP et SMS si nécessaire dans .env.local"
