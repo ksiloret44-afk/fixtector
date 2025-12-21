@@ -407,31 +407,78 @@ install_application() {
     
     # Déterminer la méthode d'installation
     if [ "$INSTALL_METHOD" = "release" ]; then
-        # Télécharger depuis GitHub
-        local latest_version=$(get_latest_release "$GITHUB_REPO" "$GITHUB_TOKEN")
-        
-        if [ -z "$latest_version" ]; then
-            print_error "Impossible de récupérer la dernière version depuis GitHub"
-            print_info "Vérifiez votre connexion internet et le repository: $GITHUB_REPO"
-            exit 1
-        fi
-        
-        print_success "Dernière version trouvée: $latest_version"
-        
-        # Vérifier si unzip est installé
-        if ! command_exists unzip; then
-            print_info "Installation de unzip..."
-            if [ "$OS" = "ubuntu" ] || [ "$OS" = "debian" ]; then
-                sudo apt install -y unzip
-            elif [ "$OS" = "centos" ] || [ "$OS" = "rocky" ] || [ "$OS" = "almalinux" ]; then
-                sudo yum install -y unzip
+        # Option 1 : Essayer de cloner le repository (plus fiable pour les repos privés)
+        if command_exists git && [ -n "$GITHUB_TOKEN" ]; then
+            print_info "Clonage du repository GitHub (méthode recommandée pour repositories privés)..."
+            
+            # Construire l'URL avec le token
+            local repo_url="https://${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git"
+            local temp_repo_dir=$(mktemp -d)
+            
+            if sudo -u "$APP_USER" git clone "$repo_url" "$temp_repo_dir" 2>&1 | tee /tmp/git-clone.log; then
+                print_success "Repository cloné avec succès"
+                
+                # Vérifier que package.json existe dans le clone
+                if [ -f "$temp_repo_dir/package.json" ]; then
+                    print_info "Copie des fichiers depuis le repository cloné..."
+                    sudo -u "$APP_USER" cp -r "$temp_repo_dir"/* "$APP_DIR/" 2>/dev/null || {
+                        find "$temp_repo_dir" -mindepth 1 -maxdepth 1 ! -name '.git' -exec sudo -u "$APP_USER" cp -r {} "$APP_DIR/" \;
+                    }
+                    sudo chown -R "$APP_USER:$APP_USER" "$APP_DIR"
+                    rm -rf "$temp_repo_dir"
+                    
+                    # Vérifier que package.json a été copié
+                    if [ -f "$APP_DIR/package.json" ]; then
+                        print_success "Fichiers copiés avec succès depuis le repository Git"
+                    else
+                        print_error "package.json n'a pas été copié correctement"
+                        print_info "Contenu de $APP_DIR:"
+                        ls -la "$APP_DIR" | head -10
+                        rm -rf "$temp_repo_dir"
+                        exit 1
+                    fi
+                else
+                    print_error "package.json non trouvé dans le repository cloné"
+                    rm -rf "$temp_repo_dir"
+                    exit 1
+                fi
+            else
+                print_warning "Échec du clonage Git, tentative avec téléchargement de release..."
+                rm -rf "$temp_repo_dir"
             fi
         fi
         
-        # Télécharger et installer la release
-        if ! download_release "$GITHUB_REPO" "$latest_version" "$GITHUB_TOKEN" "$APP_DIR"; then
-            print_error "Échec du téléchargement de la release"
-            exit 1
+        # Option 2 : Télécharger depuis GitHub release (si Git a échoué ou pas de token)
+        if [ ! -f "$APP_DIR/package.json" ]; then
+            print_info "Téléchargement depuis GitHub release..."
+            local latest_version=$(get_latest_release "$GITHUB_REPO" "$GITHUB_TOKEN")
+            
+            if [ -z "$latest_version" ]; then
+                print_error "Impossible de récupérer la dernière version depuis GitHub"
+                print_info "Vérifiez votre connexion internet et le repository: $GITHUB_REPO"
+                if [ -z "$GITHUB_TOKEN" ]; then
+                    print_info "Pour un repository privé, vous devez fournir un token GitHub"
+                fi
+                exit 1
+            fi
+            
+            print_success "Dernière version trouvée: $latest_version"
+            
+            # Vérifier si unzip est installé
+            if ! command_exists unzip; then
+                print_info "Installation de unzip..."
+                if [ "$OS" = "ubuntu" ] || [ "$OS" = "debian" ]; then
+                    sudo apt install -y unzip
+                elif [ "$OS" = "centos" ] || [ "$OS" = "rocky" ] || [ "$OS" = "almalinux" ]; then
+                    sudo yum install -y unzip
+                fi
+            fi
+            
+            # Télécharger et installer la release
+            if ! download_release "$GITHUB_REPO" "$latest_version" "$GITHUB_TOKEN" "$APP_DIR"; then
+                print_error "Échec du téléchargement de la release"
+                exit 1
+            fi
         fi
     else
         # Installation depuis les fichiers locaux
@@ -452,9 +499,16 @@ install_application() {
     # Vérifier que package.json existe
     if [ ! -f "package.json" ]; then
         print_error "package.json non trouvé dans $APP_DIR"
-        print_info "Contenu du répertoire:"
-        ls -la "$APP_DIR" | head -20
+        print_info "Répertoire actuel: $(pwd)"
+        print_info "Contenu du répertoire $APP_DIR:"
+        ls -la "$APP_DIR" 2>/dev/null | head -20 || echo "Répertoire vide ou inaccessible"
+        print_info "Taille du répertoire:"
+        du -sh "$APP_DIR" 2>/dev/null || echo "Impossible de calculer la taille"
         print_error "L'installation a échoué. Vérifiez que les fichiers ont été correctement téléchargés."
+        print_info "Solutions possibles:"
+        echo "  1. Vérifiez votre token GitHub"
+        echo "  2. Vérifiez votre connexion internet"
+        echo "  3. Essayez de cloner manuellement: git clone https://TOKEN@github.com/$GITHUB_REPO.git"
         exit 1
     fi
     
