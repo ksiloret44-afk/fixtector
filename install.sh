@@ -76,28 +76,50 @@ get_latest_release() {
             print_info "[DEBUG]   - $tag"
         done
         
-        # Extraire tous les tags et les trier par version (semver)
-        # Enlever le préfixe 'v' pour le tri, puis le remettre
+        # Extraire tous les tags
         local all_tags=$(echo "$tags_response" | grep '"name"' | sed -E 's/.*"name":\s*"([^"]+)".*/\1/')
+        print_info "[DEBUG] Tous les tags extraits:"
+        echo "$all_tags" | while read tag; do
+            print_info "[DEBUG]   - $tag"
+        done
         
         # Trier les tags par version (semver) - version la plus récente en premier
-        local latest_tag=$(echo "$all_tags" | while read tag; do
-            # Enlever le 'v' pour le tri
+        # Utiliser une fonction de tri plus robuste
+        local latest_tag=""
+        local max_version="0.0.0"
+        
+        while IFS= read -r tag; do
+            # Enlever le préfixe 'v' pour le tri
             local version=$(echo "$tag" | sed 's/^v//')
+            
             # Extraire les parties de version (major.minor.patch)
-            local major=$(echo "$version" | cut -d. -f1)
-            local minor=$(echo "$version" | cut -d. -f2)
-            local patch=$(echo "$version" | cut -d. -f3 | cut -d'-' -f1)
-            # Formater pour le tri numérique
-            printf "%03d.%03d.%03d %s\n" "$major" "$minor" "${patch:-0}" "$tag"
-        done | sort -r -t. -k1,1n -k2,2n -k3,3n | head -1 | awk '{print $2}')
+            local major=$(echo "$version" | cut -d. -f1 | grep -oE '[0-9]+' || echo "0")
+            local minor=$(echo "$version" | cut -d. -f2 | grep -oE '[0-9]+' || echo "0")
+            local patch=$(echo "$version" | cut -d. -f3 | cut -d'-' -f1 | grep -oE '[0-9]+' || echo "0")
+            
+            # Comparer avec la version max
+            local current_version="${major}.${minor}.${patch}"
+            
+            # Comparaison simple : si current > max, alors current devient max
+            if [ "$major" -gt "$(echo "$max_version" | cut -d. -f1)" ] || \
+               ([ "$major" -eq "$(echo "$max_version" | cut -d. -f1)" ] && \
+                [ "$minor" -gt "$(echo "$max_version" | cut -d. -f2)" ]) || \
+               ([ "$major" -eq "$(echo "$max_version" | cut -d. -f1)" ] && \
+                [ "$minor" -eq "$(echo "$max_version" | cut -d. -f2)" ] && \
+                [ "$patch" -gt "$(echo "$max_version" | cut -d. -f3)" ]); then
+                max_version="$current_version"
+                latest_tag="$tag"
+            fi
+            
+            print_info "[DEBUG] Tag: $tag -> Version: $current_version (max: $max_version)"
+        done <<< "$all_tags"
         
         # Si le tri a échoué, utiliser le premier tag trouvé
         if [ -z "$latest_tag" ]; then
             latest_tag=$(echo "$tags_response" | grep '"name"' | head -1 | sed -E 's/.*"name":\s*"([^"]+)".*/\1/')
             print_warning "[DEBUG] Tri échoué, utilisation du premier tag: $latest_tag"
         else
-            print_success "[DEBUG] Dernier tag sélectionné (après tri): $latest_tag"
+            print_success "[DEBUG] Dernier tag sélectionné (après tri): $latest_tag (version: $max_version)"
         fi
         
         echo "$latest_tag"
