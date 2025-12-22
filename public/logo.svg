@@ -1,0 +1,28 @@
+<svg width="200" height="60" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fond arrondi pour l'icône -->
+  <rect x="5" y="5" width="40" height="40" rx="8" fill="#2563eb" opacity="0.1"/>
+  <rect x="5" y="5" width="40" height="40" rx="8" fill="none" stroke="#2563eb" stroke-width="1.5"/>
+  
+  <!-- Icône de clé/outil stylisée -->
+  <g transform="translate(12, 12)">
+    <!-- Anneau de la clé -->
+    <circle cx="8" cy="18" r="4" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round"/>
+    
+    <!-- Corps de la clé -->
+    <path d="M 12 18 L 12 12 L 18 6 L 24 6 L 30 12 L 30 18 L 36 18 L 36 24 L 30 24 L 30 30 L 24 30 L 18 24 L 12 24 Z" 
+          fill="#2563eb" stroke="#1e40af" stroke-width="1.5" stroke-linejoin="round"/>
+    
+    <!-- Détails décoratifs -->
+    <circle cx="18" cy="12" r="1.5" fill="#ffffff"/>
+    <circle cx="24" cy="18" r="1.5" fill="#ffffff"/>
+  </g>
+  
+  <!-- Texte FixTector -->
+  <text x="55" y="38" font-family="system-ui, -apple-system, sans-serif" font-size="26" font-weight="700" fill="#1e40af" letter-spacing="-0.5">
+    FixTector
+  </text>
+  
+  <!-- Ligne décorative sous le texte -->
+  <line x1="55" y1="43" x2="195" y2="43" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" opacity="0.6"/>
+</svg>
+

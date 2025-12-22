@@ -1,0 +1,25 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fond arrondi avec dégradé -->
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e40af;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="url(#grad)"/>
+  
+  <!-- Clé stylisée -->
+  <g transform="translate(6, 6)">
+    <!-- Anneau de la clé -->
+    <circle cx="3" cy="10" r="3.5" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
+    
+    <!-- Corps de la clé -->
+    <path d="M 6.5 10 L 6.5 5 L 11 0.5 L 15.5 0.5 L 20 5 L 20 10 L 24.5 10 L 24.5 15 L 20 15 L 20 19.5 L 15.5 19.5 L 11 15 L 6.5 15 Z" 
+          fill="#ffffff" stroke="#1e40af" stroke-width="0.8" stroke-linejoin="round"/>
+    
+    <!-- Détails décoratifs -->
+    <circle cx="11" cy="5" r="1.2" fill="#2563eb"/>
+    <circle cx="15.5" cy="10" r="1.2" fill="#2563eb"/>
+  </g>
+</svg>
+

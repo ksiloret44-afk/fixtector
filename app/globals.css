@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Assurer que les inputs et textareas ont un texte visible */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+input[type="date"],
+input[type="search"],
+textarea,
+select {
+  color: rgb(17, 24, 39) !important; /* gray-900 */
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgb(156, 163, 175) !important; /* gray-400 */
+}
+
+/* Styles pour react-big-calendar */
+.rbc-calendar {
+  font-family: inherit;
+}
+
+.rbc-header {
+  padding: 10px 3px;
+  font-weight: 600;
+  color: rgb(17, 24, 39);
+  border-bottom: 2px solid rgb(229, 231, 235);
+}
+
+.rbc-day-bg {
+  border: 1px solid rgb(229, 231, 235);
+}
+
+.rbc-off-range-bg {
+  background: rgb(249, 250, 251);
+}
+
+.rbc-today {
+  background-color: rgb(239, 246, 255);
+}
+
+.rbc-current-time-indicator {
+  background-color: rgb(59, 130, 246);
+}
+
+.rbc-date-cell {
+  padding: 5px;
+  text-align: right;
+}
+
+.rbc-date-cell > a {
+  color: rgb(17, 24, 39);
+  font-weight: 500;
+}
+
+.rbc-off-range > a {
+  color: rgb(156, 163, 175);
+}
+
+.rbc-today > a {
+  color: rgb(59, 130, 246);
+  font-weight: 700;
+}
+
+.rbc-event {
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.rbc-event-label {
+  font-weight: 500;
+}
+
+.rbc-toolbar {
+  margin-bottom: 1rem;
+}
+
+.rbc-toolbar button {
+  color: rgb(55, 65, 81);
+  border: 1px solid rgb(209, 213, 219);
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  background: white;
+  cursor: pointer;
+}
+
+.rbc-toolbar button:hover {
+  background: rgb(249, 250, 251);
+}
+
+.rbc-toolbar button.rbc-active {
+  background: rgb(59, 130, 246);
+  color: white;
+  border-color: rgb(59, 130, 246);
+}
+
