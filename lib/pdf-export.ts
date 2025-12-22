@@ -22,6 +22,7 @@ interface CompanyInfo {
   legalForm?: string
   capital?: string
   director?: string
+  logoUrl?: string
 }
 
 interface CustomerInfo {
