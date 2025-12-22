@@ -233,12 +233,59 @@ Write-Host "[SUCCESS] Dépendances installées" -ForegroundColor Green
 # Génération des clients Prisma
 Write-Host ""
 Write-Host "[INFO] Génération des clients Prisma..." -ForegroundColor Yellow
-npm run db:generate
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "[ERROR] Échec de la génération des clients Prisma" -ForegroundColor Red
+
+# Vérifier que les schémas Prisma existent
+if (-not (Test-Path "prisma/schema-main.prisma")) {
+    Write-Host "[ERROR] Fichier prisma/schema-main.prisma introuvable" -ForegroundColor Red
     exit 1
 }
-Write-Host "[SUCCESS] Clients Prisma générés" -ForegroundColor Green
+if (-not (Test-Path "prisma/schema-company.prisma")) {
+    Write-Host "[ERROR] Fichier prisma/schema-company.prisma introuvable" -ForegroundColor Red
+    exit 1
+}
+
+# Générer les clients Prisma séparément (nécessaire car deux schémas différents)
+Write-Host "[INFO] Génération du client Prisma main..." -ForegroundColor Yellow
+npx prisma generate --schema=prisma/schema-main.prisma
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[ERROR] Échec de la génération du client Prisma main" -ForegroundColor Red
+    Write-Host "[INFO] Vérifiez que Prisma est installé: npm list prisma" -ForegroundColor Yellow
+    exit 1
+}
+
+Write-Host "[INFO] Génération du client Prisma company..." -ForegroundColor Yellow
+npx prisma generate --schema=prisma/schema-company.prisma
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[ERROR] Échec de la génération du client Prisma company" -ForegroundColor Red
+    Write-Host "[INFO] Vérifiez que Prisma est installé: npm list prisma" -ForegroundColor Yellow
+    exit 1
+}
+
+# Vérifier que les clients Prisma ont bien été générés
+Write-Host "[INFO] Vérification de la génération des clients Prisma..." -ForegroundColor Yellow
+$prismaMainPath = "node_modules\.prisma\client-main"
+$prismaCompanyPath = "node_modules\.prisma\client-company"
+
+$prismaMainExists = Test-Path $prismaMainPath
+$prismaCompanyExists = Test-Path $prismaCompanyPath
+
+if ($prismaMainExists -and $prismaCompanyExists) {
+    Write-Host "[SUCCESS] Clients Prisma générés et vérifiés" -ForegroundColor Green
+    Write-Host "  ✓ Client main: $prismaMainPath" -ForegroundColor Gray
+    Write-Host "  ✓ Client company: $prismaCompanyPath" -ForegroundColor Gray
+} else {
+    Write-Host "[ERROR] Les clients Prisma ne sont pas générés correctement" -ForegroundColor Red
+    if (-not $prismaMainExists) {
+        Write-Host "[ERROR] Client main manquant: $prismaMainPath" -ForegroundColor Red
+    }
+    if (-not $prismaCompanyExists) {
+        Write-Host "[ERROR] Client company manquant: $prismaCompanyPath" -ForegroundColor Red
+    }
+    Write-Host "[INFO] Chemins complets attendus:" -ForegroundColor Yellow
+    Write-Host "  - $(Resolve-Path .)\$prismaMainPath" -ForegroundColor White
+    Write-Host "  - $(Resolve-Path .)\$prismaCompanyPath" -ForegroundColor White
+    exit 1
+}
 
 # Initialisation des bases de données
 Write-Host ""
