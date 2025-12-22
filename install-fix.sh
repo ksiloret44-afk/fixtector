@@ -184,6 +184,10 @@ cd "$APP_DIR"
 sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && unset NODE_ENV && npm install"
 print_success "Dépendances npm installées"
 
+# Corriger les vulnérabilités automatiquement
+print_info "Correction des vulnérabilités npm..."
+sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && npm audit fix --force" || print_warning "Certaines vulnérabilités n'ont pas pu être corrigées automatiquement"
+
 # 6. CONFIGURER PRISMA
 print_info "Configuration de Prisma..."
 
