@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getUserPrisma } from '@/lib/db-manager'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
@@ -13,11 +13,19 @@ export async function PATCH(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
+    const companyPrisma = await getUserPrisma()
+    if (!companyPrisma) {
+      return NextResponse.json(
+        { error: 'Vous devez être associé à une entreprise' },
+        { status: 403 }
+      )
+    }
+
     const body = await request.json()
     const { status } = body
 
     // Récupérer le devis avec toutes les informations nécessaires
-    const quote = await prisma.quote.findUnique({
+    const quote = await companyPrisma.quote.findUnique({
       where: { id: params.id },
       include: {
         repair: true,
@@ -31,13 +39,13 @@ export async function PATCH(
     // Si le devis est accepté, créer automatiquement une facture
     if (status === 'accepted') {
       // Vérifier si une facture existe déjà pour cette réparation
-      const existingInvoice = await prisma.invoice.findUnique({
+      const existingInvoice = await companyPrisma.invoice.findUnique({
         where: { repairId: quote.repairId },
       })
 
       if (existingInvoice) {
         // Mettre à jour le statut du devis même si la facture existe déjà
-        const updatedQuote = await prisma.quote.update({
+        const updatedQuote = await companyPrisma.quote.update({
           where: { id: params.id },
           data: { status },
         })
@@ -55,7 +63,7 @@ export async function PATCH(
 
       // Créer la facture dans une transaction
       try {
-        const invoice = await prisma.invoice.create({
+        const invoice = await companyPrisma.invoice.create({
           data: {
             repairId: quote.repairId,
             customerId: quote.customerId,
@@ -72,7 +80,7 @@ export async function PATCH(
         })
 
         // Mettre à jour le statut du devis
-        const updatedQuote = await prisma.quote.update({
+        const updatedQuote = await companyPrisma.quote.update({
           where: { id: params.id },
           data: { status },
         })
@@ -88,11 +96,11 @@ export async function PATCH(
         
         // Si l'erreur est que la facture existe déjà, mettre quand même à jour le devis
         if (invoiceError.code === 'P2002') {
-          const existingInvoice = await prisma.invoice.findUnique({
+          const existingInvoice = await companyPrisma.invoice.findUnique({
             where: { repairId: quote.repairId },
           })
           
-          const updatedQuote = await prisma.quote.update({
+          const updatedQuote = await companyPrisma.quote.update({
             where: { id: params.id },
             data: { status },
           })
@@ -109,7 +117,7 @@ export async function PATCH(
     }
 
     // Pour les autres statuts (rejected, etc.), juste mettre à jour le statut
-    const updatedQuote = await prisma.quote.update({
+    const updatedQuote = await companyPrisma.quote.update({
       where: { id: params.id },
       data: { status },
     })
@@ -143,8 +151,16 @@ export async function DELETE(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
+    const companyPrisma = await getUserPrisma()
+    if (!companyPrisma) {
+      return NextResponse.json(
+        { error: 'Vous devez être associé à une entreprise' },
+        { status: 403 }
+      )
+    }
+
     // Récupérer le devis avec la réparation avant de le supprimer
-    const quote = await prisma.quote.findUnique({
+    const quote = await companyPrisma.quote.findUnique({
       where: { id: params.id },
       include: {
         repair: true,
@@ -156,12 +172,12 @@ export async function DELETE(
     }
 
     // Supprimer le devis
-    await prisma.quote.delete({
+    await companyPrisma.quote.delete({
       where: { id: params.id },
     })
 
     // Remettre la réparation en statut "en cours"
-    await prisma.repair.update({
+    await companyPrisma.repair.update({
       where: { id: quote.repairId },
       data: { status: 'in_progress' },
     })
