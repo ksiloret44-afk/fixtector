@@ -10,17 +10,81 @@ Write-Host " Installation FixTector v1.4.0 Windows" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host ""
 
+# Fonction pour trouver Node.js dans les emplacements typiques
+function Find-NodeJS {
+    $commonPaths = @(
+        "$env:ProgramFiles\nodejs",
+        "${env:ProgramFiles(x86)}\nodejs",
+        "$env:LOCALAPPDATA\Microsoft\WindowsApps",
+        "$env:USERPROFILE\AppData\Local\Microsoft\WindowsApps"
+    )
+    
+    foreach ($path in $commonPaths) {
+        $nodePath = Join-Path $path "node.exe"
+        if (Test-Path $nodePath) {
+            return $path
+        }
+    }
+    return $null
+}
+
+# Fonction pour rafraîchir le PATH et vérifier Node.js
+function Refresh-PathAndCheckNode {
+    # Rafraîchir le PATH depuis le registre
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+    
+    # Chercher Node.js dans les emplacements typiques
+    $nodePath = Find-NodeJS
+    if ($nodePath) {
+        if ($env:Path -notlike "*$nodePath*") {
+            $env:Path = "$nodePath;$env:Path"
+            Write-Host "[INFO] Node.js trouvé dans: $nodePath" -ForegroundColor Yellow
+            Write-Host "[INFO] Ajouté au PATH de cette session" -ForegroundColor Yellow
+        }
+    }
+    
+    # Essayer plusieurs fois avec des délais
+    for ($i = 1; $i -le 5; $i++) {
+        try {
+            $nodeVersion = node --version 2>$null
+            if ($nodeVersion) {
+                return $nodeVersion
+            }
+        } catch {
+            # Continuer à essayer
+        }
+        Start-Sleep -Seconds 2
+        # Rafraîchir le PATH à nouveau
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+        $nodePath = Find-NodeJS
+        if ($nodePath -and $env:Path -notlike "*$nodePath*") {
+            $env:Path = "$nodePath;$env:Path"
+        }
+    }
+    return $null
+}
+
 # Fonction pour installer Node.js via winget
 function Install-NodeJS-Winget {
     Write-Host "[INFO] Tentative d'installation de Node.js via winget..." -ForegroundColor Yellow
     try {
-        winget install OpenJS.NodeJS.LTS --silent --accept-package-agreements --accept-source-agreements
+        $result = winget install OpenJS.NodeJS.LTS --silent --accept-package-agreements --accept-source-agreements 2>&1
         Write-Host "[SUCCESS] Node.js installé via winget" -ForegroundColor Green
-        # Attendre que Node.js soit disponible dans le PATH
-        Start-Sleep -Seconds 5
-        # Rafraîchir le PATH
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-        return $true
+        
+        # Attendre un peu pour que l'installation se termine
+        Start-Sleep -Seconds 3
+        
+        # Essayer de trouver et ajouter Node.js au PATH
+        $nodeVersion = Refresh-PathAndCheckNode
+        
+        if ($nodeVersion) {
+            Write-Host "[SUCCESS] Node.js disponible: $nodeVersion" -ForegroundColor Green
+            return $true
+        } else {
+            Write-Host "[WARNING] Node.js installé mais pas encore détecté dans cette session" -ForegroundColor Yellow
+            Write-Host "[INFO] Node.js sera disponible après redémarrage de PowerShell" -ForegroundColor Yellow
+            return $true  # Retourner true car l'installation a réussi
+        }
     } catch {
         Write-Host "[WARNING] Échec de l'installation via winget: $_" -ForegroundColor Yellow
         return $false
@@ -88,18 +152,30 @@ if (-not $nodeInstalled) {
             }
         }
         
-        # Vérifier à nouveau
-        Start-Sleep -Seconds 3
-        try {
-            $nodeVersion = node --version 2>$null
-            if ($nodeVersion) {
-                Write-Host "[SUCCESS] Node.js installé: $nodeVersion" -ForegroundColor Green
-                $nodeInstalled = $true
+        # Vérifier à nouveau avec rafraîchissement du PATH
+        $nodeVersion = Refresh-PathAndCheckNode
+        
+        if ($nodeVersion) {
+            Write-Host "[SUCCESS] Node.js disponible: $nodeVersion" -ForegroundColor Green
+            $nodeInstalled = $true
+        } else {
+            Write-Host "[WARNING] Node.js installé mais pas encore détecté dans cette session PowerShell" -ForegroundColor Yellow
+            Write-Host "[INFO] Cela est normal après une installation via winget" -ForegroundColor Yellow
+            Write-Host ""
+            Write-Host "Options:" -ForegroundColor Cyan
+            Write-Host "  1. Redémarrer PowerShell et réexécuter ce script (recommandé)" -ForegroundColor White
+            Write-Host "  2. Continuer quand même (Node.js sera disponible après redémarrage)" -ForegroundColor White
+            Write-Host ""
+            $response = Read-Host "Voulez-vous continuer quand même ? (O/N)"
+            
+            if ($response -eq "O" -or $response -eq "o" -or $response -eq "Y" -or $response -eq "y") {
+                Write-Host "[INFO] Continuation de l'installation..." -ForegroundColor Yellow
+                Write-Host "[WARNING] Assurez-vous que Node.js sera disponible avant de démarrer le serveur" -ForegroundColor Yellow
+                $nodeInstalled = $true  # Continuer quand même
+            } else {
+                Write-Host "[INFO] Installation interrompue. Redémarrez PowerShell et réexécutez ce script." -ForegroundColor Yellow
+                exit 0  # Exit avec succès car l'installation a réussi
             }
-        } catch {
-            Write-Host "[ERROR] Node.js n'est toujours pas disponible après installation" -ForegroundColor Red
-            Write-Host "[INFO] Veuillez redémarrer PowerShell et réessayer" -ForegroundColor Yellow
-            exit 1
         }
     } else {
         Write-Host "[ERROR] Node.js n'est pas installé et ce script n'est pas exécuté en tant qu'administrateur" -ForegroundColor Red
