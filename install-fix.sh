@@ -192,6 +192,7 @@ if [ ! -f "$APP_DIR/.env.local" ]; then
     NEXTAUTH_SECRET=$(openssl rand -base64 32)
     sudo tee "$APP_DIR/.env.local" > /dev/null << EOF
 DATABASE_URL_MAIN=file:./prisma/main.db
+DATABASE_URL=file:./prisma/main.db
 NEXTAUTH_URL=http://localhost:${PORT}
 NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
 NEXT_PUBLIC_BASE_URL=http://localhost:${PORT}

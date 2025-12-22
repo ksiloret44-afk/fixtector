@@ -138,7 +138,13 @@ async function sendSMS(
   try {
     // Support pour différents fournisseurs SMS
     if (config.smsProvider === 'twilio') {
-      const twilio = require('twilio')
+      let twilio
+      try {
+        twilio = require('twilio')
+      } catch (error) {
+        console.error('Twilio non installé. Installez-le avec: npm install twilio')
+        throw new Error('Twilio non disponible')
+      }
       const client = twilio(
         process.env.TWILIO_ACCOUNT_SID || config.smsApiKey,
         process.env.TWILIO_AUTH_TOKEN

@@ -55,6 +55,9 @@ export async function GET() {
       }
     }
 
+    // Convertir la Map en tableau
+    const chats = Array.from(companyMap.values())
+
     // Trier par date du dernier message (plus récent en premier)
     chats.sort((a, b) =>
       new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
