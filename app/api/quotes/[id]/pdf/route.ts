@@ -52,7 +52,21 @@ export async function GET(
 
     const company = user?.company || {
       name: 'FixTector',
-      email: user?.email,
+      email: user?.email || undefined,
+      phone: null,
+      address: null,
+      city: null,
+      postalCode: null,
+      country: null,
+      siret: null,
+      siren: null,
+      rcs: null,
+      rcsCity: null,
+      vatNumber: null,
+      legalForm: null,
+      capital: null,
+      director: null,
+      logoUrl: null,
     }
 
     // Préparer les données pour le PDF
