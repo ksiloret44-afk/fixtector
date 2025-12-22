@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getUserPrisma } from '@/lib/db-manager'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
@@ -13,10 +13,18 @@ export async function PATCH(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
+    const companyPrisma = await getUserPrisma()
+    if (!companyPrisma) {
+      return NextResponse.json(
+        { error: 'Vous devez être associé à une entreprise' },
+        { status: 403 }
+      )
+    }
+
     const body = await request.json()
     const { paymentStatus, paymentMethod } = body
 
-    const invoice = await prisma.invoice.update({
+    const invoice = await companyPrisma.invoice.update({
       where: { id: params.id },
       data: {
         paymentStatus: paymentStatus || undefined,
@@ -45,7 +53,15 @@ export async function DELETE(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    await prisma.invoice.delete({
+    const companyPrisma = await getUserPrisma()
+    if (!companyPrisma) {
+      return NextResponse.json(
+        { error: 'Vous devez être associé à une entreprise' },
+        { status: 403 }
+      )
+    }
+
+    await companyPrisma.invoice.delete({
       where: { id: params.id },
     })
 
