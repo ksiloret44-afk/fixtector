@@ -29,10 +29,10 @@ export async function POST(request: Request) {
 
     const mainPrisma = getMainPrisma()
 
-    // Vérifier que le customerId correspond à l'utilisateur
+    // Vérifier que l'utilisateur est associé à une entreprise
     const dbUser = await mainPrisma.user.findUnique({
       where: { id: user.id },
-      select: { customerId: true, companyId: true },
+      select: { companyId: true },
     })
 
     if (!dbUser?.companyId) {
@@ -56,17 +56,14 @@ export async function POST(request: Request) {
     }
 
     // Créer l'avis dans la base de données de l'entreprise
-    // Le modèle Review nécessite reviewToken et requestedAt
+    // Le modèle Review nécessite reviewToken
     const reviewToken = `review_${Date.now()}_${Math.random().toString(36).substring(7)}`
     const review = await companyPrisma.review.create({
       data: {
         customerId,
         rating: parseInt(rating),
         comment: comment || null,
-        isPublic: false, // Nécessite l'approbation d'un admin
-        isApproved: false,
         reviewToken,
-        requestedAt: new Date(),
         submittedAt: new Date(),
       },
     })

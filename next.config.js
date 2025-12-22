@@ -30,6 +30,17 @@ const nextConfig = {
       path.resolve(process.cwd(), 'node_modules'),
     ]
     
+    // Ignorer les modules Node.js côté client (pour twilio, nodemailer, etc.)
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        net: false,
+        tls: false,
+        fs: false,
+        crypto: false,
+      }
+    }
+    
     return config
   },
 }
