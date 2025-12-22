@@ -1,6 +1,6 @@
-// Imports Prisma - utiliser les chemins absolus pour compatibilité Windows/Linux
-import { PrismaClient as MainPrismaClient } from '../../node_modules/.prisma/client-main'
-import { PrismaClient as CompanyPrismaClient } from '../../node_modules/.prisma/client-company'
+// Imports Prisma - utiliser les alias webpack définis dans next.config.js
+import { PrismaClient as MainPrismaClient } from '.prisma/client-main'
+import { PrismaClient as CompanyPrismaClient } from '.prisma/client-company'
 import { getServerSession } from 'next-auth'
 import { authOptions } from './auth'
 import path from 'path'
