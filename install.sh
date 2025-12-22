@@ -1544,6 +1544,7 @@ main() {
     fi
     
     # Étapes d'installation
+    cleanup_existing_installation  # Nettoyer complètement avant de commencer
     install_system_dependencies
     create_app_user
     install_application
