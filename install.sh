@@ -198,19 +198,47 @@ download_release() {
     
     # Télécharger le ZIP
     print_info "Téléchargement depuis: $download_url"
+    print_info "[DEBUG] Token fourni: $([ -n "$token" ] && echo 'OUI' || echo 'NON')"
+    
+    local curl_exit_code=0
     if [ -n "$token" ]; then
-        if ! curl -sL -H "Authorization: Bearer $token" -o "$zip_file" "$download_url"; then
-            print_error "Impossible de télécharger la release (vérifiez votre token GitHub)"
-            rm -rf "$temp_dir"
-            return 1
-        fi
+        print_info "[DEBUG] Tentative de téléchargement avec token..."
+        curl -sL -H "Authorization: Bearer $token" -o "$zip_file" "$download_url" 2>&1 | tee /tmp/curl-debug.log
+        curl_exit_code=${PIPESTATUS[0]}
     else
-        if ! curl -sL -o "$zip_file" "$download_url"; then
+        print_info "[DEBUG] Tentative de téléchargement sans token..."
+        curl -sL -o "$zip_file" "$download_url" 2>&1 | tee /tmp/curl-debug.log
+        curl_exit_code=${PIPESTATUS[0]}
+    fi
+    
+    if [ $curl_exit_code -ne 0 ]; then
+        print_error "[DEBUG] Code de sortie curl: $curl_exit_code"
+        if [ -f /tmp/curl-debug.log ]; then
+            print_error "[DEBUG] Sortie curl: $(cat /tmp/curl-debug.log | head -10)"
+        fi
+        
+        # Vérifier si le fichier a été téléchargé (même partiellement)
+        if [ -f "$zip_file" ]; then
+            local file_size=$(stat -f%z "$zip_file" 2>/dev/null || stat -c%s "$zip_file" 2>/dev/null || echo "0")
+            print_info "[DEBUG] Fichier téléchargé (taille: $file_size octets)"
+            
+            # Vérifier si c'est un fichier HTML (erreur 404)
+            if head -1 "$zip_file" 2>/dev/null | grep -q "<!DOCTYPE html\|<html"; then
+                print_error "Erreur 404: Le tag $version n'existe pas ou le repository est privé"
+                print_info "[DEBUG] Contenu du fichier (premières lignes):"
+                head -5 "$zip_file" 2>/dev/null
+            fi
+        fi
+        
+        if [ -n "$token" ]; then
+            print_error "Impossible de télécharger la release (vérifiez votre token GitHub)"
+        else
             print_error "Impossible de télécharger la release"
             print_info "Si le repository est privé, vous devez fournir un token GitHub"
-            rm -rf "$temp_dir"
-            return 1
+            print_info "Essayez avec: sudo ./install.sh (et fournissez un token GitHub)"
         fi
+        rm -rf "$temp_dir"
+        return 1
     fi
     
     # Vérifier que le fichier ZIP a été téléchargé et n'est pas vide
