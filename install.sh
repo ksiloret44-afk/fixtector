@@ -182,10 +182,15 @@ download_release() {
     local token=$3
     local dest_dir=$4
     
+    # Nettoyer la version (enlever les caractères de contrôle, espaces, et messages de debug)
+    version=$(echo "$version" | tr -d '\n\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -v "^\[" | tail -1)
+    
     print_info "Téléchargement de la version $version depuis GitHub..."
+    print_info "[DEBUG] Version nettoyée: '$version'"
     
     # Construire l'URL de téléchargement
     local download_url="https://github.com/$repo/archive/refs/tags/$version.zip"
+    print_info "[DEBUG] URL finale: $download_url"
     
     # Créer un répertoire temporaire
     local temp_dir=$(mktemp -d)
