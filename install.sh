@@ -498,6 +498,104 @@ install_system_dependencies() {
     print_success "Dépendances système installées"
 }
 
+# Fonction pour nettoyer complètement l'installation existante
+cleanup_existing_installation() {
+    print_info "Nettoyage de l'installation existante..."
+    
+    # Arrêter PM2 si l'application tourne
+    if command_exists pm2; then
+        if sudo -u "$APP_USER" pm2 list 2>/dev/null | grep -q "$APP_NAME"; then
+            print_info "Arrêt de l'application PM2..."
+            sudo -u "$APP_USER" pm2 delete "$APP_NAME" 2>/dev/null || true
+            sudo -u "$APP_USER" pm2 save 2>/dev/null || true
+        fi
+    fi
+    
+    # Supprimer le répertoire de l'application
+    if [ -d "$APP_DIR" ]; then
+        print_info "Suppression du répertoire de l'application: $APP_DIR"
+        sudo rm -rf "$APP_DIR"
+        print_success "Répertoire de l'application supprimé"
+    fi
+    
+    # Supprimer les configurations Nginx
+    if command_exists nginx; then
+        if [ "$OS" = "ubuntu" ] || [ "$OS" = "debian" ]; then
+            NGINX_CONFIG="/etc/nginx/sites-available/${APP_NAME}"
+            NGINX_ENABLED="/etc/nginx/sites-enabled/${APP_NAME}"
+        elif [ "$OS" = "centos" ] || [ "$OS" = "rocky" ] || [ "$OS" = "almalinux" ]; then
+            NGINX_CONFIG="/etc/nginx/conf.d/${APP_NAME}.conf"
+            NGINX_ENABLED="/etc/nginx/conf.d/${APP_NAME}.conf"
+        fi
+        
+        if [ -f "$NGINX_CONFIG" ]; then
+            print_info "Suppression de la configuration Nginx..."
+            sudo rm -f "$NGINX_CONFIG"
+            if [ -L "$NGINX_ENABLED" ]; then
+                sudo rm -f "$NGINX_ENABLED"
+            fi
+            sudo nginx -t && sudo systemctl reload nginx 2>/dev/null || true
+            print_success "Configuration Nginx supprimée"
+        fi
+    fi
+    
+    # Supprimer les configurations Apache
+    if command_exists apache2 || command_exists httpd; then
+        APACHE_CMD="apache2"
+        if [ "$OS" = "centos" ] || [ "$OS" = "rocky" ] || [ "$OS" = "almalinux" ]; then
+            APACHE_CMD="httpd"
+            APACHE_CONFIG="/etc/httpd/conf.d/${APP_NAME}.conf"
+        else
+            APACHE_CONFIG="/etc/apache2/sites-available/${APP_NAME}.conf"
+        fi
+        
+        if [ -f "$APACHE_CONFIG" ]; then
+            print_info "Suppression de la configuration Apache..."
+            sudo rm -f "$APACHE_CONFIG"
+            if [ "$OS" = "ubuntu" ] || [ "$OS" = "debian" ]; then
+                sudo a2dissite "${APP_NAME}.conf" 2>/dev/null || true
+                sudo systemctl reload apache2 2>/dev/null || true
+            elif [ "$OS" = "centos" ] || [ "$OS" = "rocky" ] || [ "$OS" = "almalinux" ]; then
+                sudo systemctl reload httpd 2>/dev/null || true
+            fi
+            print_success "Configuration Apache supprimée"
+        fi
+    fi
+    
+    # Supprimer l'utilisateur et son répertoire home
+    if id "$APP_USER" &>/dev/null; then
+        print_info "Suppression de l'utilisateur $APP_USER..."
+        
+        # Arrêter tous les processus de l'utilisateur
+        sudo pkill -u "$APP_USER" 2>/dev/null || true
+        sleep 2
+        
+        # Supprimer le répertoire home de l'utilisateur
+        if [ -d "/home/$APP_USER" ]; then
+            print_info "Suppression du répertoire home de $APP_USER..."
+            sudo rm -rf "/home/$APP_USER"
+        fi
+        
+        # Supprimer l'utilisateur
+        if [ "$OS" = "ubuntu" ] || [ "$OS" = "debian" ]; then
+            sudo deluser --remove-home "$APP_USER" 2>/dev/null || \
+            sudo userdel -r "$APP_USER" 2>/dev/null || true
+        else
+            sudo userdel -r "$APP_USER" 2>/dev/null || true
+        fi
+        
+        print_success "Utilisateur $APP_USER supprimé"
+    fi
+    
+    # Supprimer les fichiers PM2 de l'utilisateur si ils existent encore
+    if [ -d "/home/$APP_USER/.pm2" ]; then
+        print_info "Suppression des fichiers PM2..."
+        sudo rm -rf "/home/$APP_USER/.pm2"
+    fi
+    
+    print_success "Nettoyage terminé - Installation propre prête"
+}
+
 # Fonction pour créer l'utilisateur de l'application
 create_app_user() {
     if id "$APP_USER" &>/dev/null; then
