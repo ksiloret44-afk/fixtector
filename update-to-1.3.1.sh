@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ###############################################################################
-# Script de mise à jour automatique vers la version 1.3.1
+# Script de mise à jour automatique vers la version 1.3.2
 # Pour le serveur Linux - /home/kevin/fixtector
 ###############################################################################
 
@@ -15,7 +15,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 APP_DIR="/home/kevin/fixtector"
-VERSION="v1.3.1"
+VERSION="v1.3.2"
 
 print_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
