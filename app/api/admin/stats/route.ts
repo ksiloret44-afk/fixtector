@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getMainPrisma } from '@/lib/db-manager'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
@@ -10,11 +10,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
+    const mainPrisma = getMainPrisma()
     const [totalUsers, approvedUsers, pendingUsers, adminUsers] = await Promise.all([
-      prisma.user.count(),
-      prisma.user.count({ where: { approved: true } }),
-      prisma.user.count({ where: { approved: false } }),
-      prisma.user.count({ where: { role: 'admin' } }),
+      mainPrisma.user.count(),
+      mainPrisma.user.count({ where: { approved: true } }),
+      mainPrisma.user.count({ where: { approved: false } }),
+      mainPrisma.user.count({ where: { role: 'admin' } }),
     ])
 
     return NextResponse.json({

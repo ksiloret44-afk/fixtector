@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getMainPrisma } from '@/lib/db-manager'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
@@ -10,12 +10,13 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
+    const mainPrisma = getMainPrisma()
     const body = await request.json()
     const { name, email } = body
 
     // Vérifier si l'email est déjà utilisé par un autre utilisateur
     if (email && email !== session.user?.email) {
-      const existingUser = await prisma.user.findUnique({
+      const existingUser = await mainPrisma.user.findUnique({
         where: { email },
       })
 
@@ -27,7 +28,7 @@ export async function PATCH(request: Request) {
       }
     }
 
-    const user = await prisma.user.update({
+    const user = await mainPrisma.user.update({
       where: { id: (session.user as any).id },
       data: {
         name: name || undefined,

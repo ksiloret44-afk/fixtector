@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getMainPrisma } from '@/lib/db-manager'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
@@ -13,6 +13,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
+    const mainPrisma = getMainPrisma()
     // Ne pas permettre de supprimer son propre compte
     if (params.id === (session.user as any).id) {
       return NextResponse.json(
@@ -21,7 +22,7 @@ export async function DELETE(
       )
     }
 
-    await prisma.user.delete({
+    await mainPrisma.user.delete({
       where: { id: params.id },
     })
 
