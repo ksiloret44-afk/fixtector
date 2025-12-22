@@ -13,12 +13,11 @@ Avant de commencer, assurez-vous d'avoir installé :
    - Télécharger depuis : https://git-scm.com/download/win
    - Ou télécharger directement le ZIP depuis GitHub
 
-## Méthode 1 : Installation avec Git (Recommandé)
+## Méthode 1 : Installation automatique complète (Recommandé)
 
-### Étape 1 : Cloner le dépôt
+### Étape 1 : Télécharger le projet
 
-Ouvrez PowerShell ou l'invite de commande dans le dossier où vous voulez installer l'application :
-
+**Option A - Avec Git :**
 ```powershell
 # Cloner le dépôt
 git clone https://github.com/ksiloret44-afk/fixtector.git
@@ -30,7 +29,29 @@ cd fixtector
 git checkout v1.4.0
 ```
 
-### Étape 2 : Exécuter le script d'installation
+**Option B - Sans Git (ZIP) :**
+1. Allez sur : https://github.com/ksiloret44-afk/fixtector/releases/tag/v1.4.0
+2. Téléchargez "Source code (zip)"
+3. Extrayez le ZIP dans un dossier
+4. Ouvrez PowerShell dans ce dossier
+
+### Étape 2 : Installer les prérequis (Node.js, Git)
+
+**Important :** Exécutez PowerShell en tant qu'administrateur (clic droit > Exécuter en tant qu'administrateur)
+
+```powershell
+# Installer automatiquement Node.js et Git
+.\install-prerequisites-windows.ps1
+```
+
+Ce script va :
+- ✅ Vérifier si Node.js est installé, sinon l'installer automatiquement
+- ✅ Vérifier si Git est installé, sinon proposer de l'installer
+- ✅ Utiliser winget si disponible, sinon télécharger depuis les sites officiels
+
+**Note :** Si Node.js ou Git viennent d'être installés, **redémarrez PowerShell** avant de continuer.
+
+### Étape 3 : Exécuter le script d'installation
 
 ```powershell
 # Exécuter le script d'installation automatique
@@ -92,7 +113,7 @@ Le serveur sera accessible sur : **http://localhost:3001**
 
 ---
 
-## Méthode 2 : Installation manuelle (sans Git)
+## Méthode 2 : Installation manuelle (sans scripts automatiques)
 
 ### Étape 1 : Télécharger le ZIP
 
