@@ -178,7 +178,7 @@ async function migrateDataToCompany(companyPrisma: CompanyPrismaClient, userId: 
   try {
     // Migrer les clients
     const oldCustomers = await oldPrisma.customer.findMany({
-      where: userId ? { userId } : undefined,
+      where: userId ? { user: { id: userId } } : undefined,
     })
 
     console.log(`   📋 ${oldCustomers.length} client(s) à migrer`)

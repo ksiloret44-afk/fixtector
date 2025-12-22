@@ -117,7 +117,8 @@ export default function AppointmentsCalendar() {
     setShowForm(true)
   }, [])
 
-  const handleSelectEvent = useCallback((appointment: Appointment) => {
+  const handleSelectEvent = useCallback((event: { id: string; title: string; start: Date; end: Date; resource: Appointment }) => {
+    const appointment = event.resource
     setSelectedAppointment(appointment)
     setFormData({
       customerId: appointment.customer.id || '',

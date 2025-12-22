@@ -12,6 +12,7 @@ interface NewInvoiceFormProps {
     laborCost?: number
     partsCost?: number
     totalCost?: number
+    finalAmount?: number
     taxRate?: number
     notes?: string | null
   }
@@ -23,7 +24,7 @@ export default function NewInvoiceForm({ repair, userId, initialData }: NewInvoi
   const [error, setError] = useState('')
   
   const [formData, setFormData] = useState({
-    totalAmountTTC: initialData?.finalAmount?.toString() || '',
+    totalAmountTTC: (initialData?.finalAmount || initialData?.totalCost)?.toString() || '',
     taxRate: initialData?.taxRate?.toString() || '20.0',
     notes: initialData?.notes || '',
   })

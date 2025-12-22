@@ -68,9 +68,6 @@ export async function POST(request: Request) {
         customerId: customer.id,
         rating: 0, // Pas encore noté
         reviewToken,
-        requestedAt: new Date(),
-        isPublic: false,
-        isApproved: false,
       },
     })
 

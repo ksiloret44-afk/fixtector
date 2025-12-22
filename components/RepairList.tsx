@@ -18,7 +18,7 @@ interface Repair {
     lastName: string
     phone: string
   }
-  user: {
+  user?: {
     name: string
   }
 }

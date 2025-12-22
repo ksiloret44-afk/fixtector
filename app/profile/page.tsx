@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { getMainPrisma } from '@/lib/db-manager'
 import Navigation from '@/components/Navigation'
 import ProfileForm from '@/components/ProfileForm'
 
@@ -19,7 +19,8 @@ export default async function ProfilePage() {
     redirect('/change-password')
   }
 
-  const user = await prisma.user.findUnique({
+  const mainPrisma = getMainPrisma()
+  const user = await mainPrisma.user.findUnique({
     where: { id: sessionUser.id },
     select: {
       id: true,

@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect, notFound } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { getMainPrisma, getUserPrisma } from '@/lib/db-manager'
 import Navigation from '@/components/Navigation'
 import RepairDetails from '@/components/RepairDetails'
 
@@ -21,21 +21,36 @@ export default async function ClientRepairDetailPage({
     redirect('/')
   }
 
-  // Récupérer le Customer lié à l'utilisateur
-  const dbUser = await prisma.user.findUnique({
+  // Récupérer l'entreprise de l'utilisateur
+  const mainPrisma = getMainPrisma()
+  const dbUser = await mainPrisma.user.findUnique({
     where: { id: user.id },
-    include: { customer: true },
+    select: { companyId: true },
   })
 
-  if (!dbUser?.customerId) {
+  if (!dbUser?.companyId) {
     notFound()
   }
 
-  const repair = await prisma.repair.findUnique({
+  // Récupérer le client depuis la base de données de l'entreprise
+  const companyPrisma = await getUserPrisma()
+  if (!companyPrisma) {
+    notFound()
+  }
+
+  // Trouver le customer par email de l'utilisateur
+  const customer = await companyPrisma.customer.findFirst({
+    where: { email: user.email },
+  })
+
+  if (!customer) {
+    notFound()
+  }
+
+  const repair = await companyPrisma.repair.findUnique({
     where: { id: params.id },
     include: {
       customer: true,
-      user: true,
       parts: {
         include: {
           part: true,
@@ -46,7 +61,7 @@ export default async function ClientRepairDetailPage({
     },
   })
 
-  if (!repair || repair.customerId !== dbUser.customerId) {
+  if (!repair || repair.customerId !== customer.id) {
     notFound()
   }
 

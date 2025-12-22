@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { getUserPrisma } from '@/lib/db-manager'
 import Navigation from '@/components/Navigation'
 import QuoteDetails from '@/components/QuoteDetails'
 import { notFound } from 'next/navigation'
@@ -17,7 +17,12 @@ export default async function QuoteDetailPage({
     redirect('/login')
   }
 
-  const quote = await prisma.quote.findUnique({
+  const companyPrisma = await getUserPrisma()
+  if (!companyPrisma) {
+    notFound()
+  }
+
+  const quote = await companyPrisma.quote.findUnique({
     where: { id: params.id },
     include: {
       repair: {

@@ -1,4 +1,4 @@
-import { prisma } from './prisma'
+import { getUserPrisma } from './db-manager'
 
 let cachedSettings: Record<string, string> | null = null
 let cacheTimestamp: number = 0
@@ -13,7 +13,12 @@ export async function getSettings(): Promise<Record<string, string>> {
   }
 
   try {
-    const settings = await prisma.settings.findMany()
+    const companyPrisma = await getUserPrisma()
+    if (!companyPrisma) {
+      return {}
+    }
+    
+    const settings = await companyPrisma.settings.findMany()
     const settingsMap: Record<string, string> = {}
     
     settings.forEach(setting => {

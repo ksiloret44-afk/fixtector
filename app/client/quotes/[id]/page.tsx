@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect, notFound } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { getMainPrisma, getUserPrisma } from '@/lib/db-manager'
 import Navigation from '@/components/Navigation'
 import QuoteDetails from '@/components/QuoteDetails'
 
@@ -21,17 +21,33 @@ export default async function ClientQuoteDetailPage({
     redirect('/')
   }
 
-  // Récupérer le Customer lié à l'utilisateur
-  const dbUser = await prisma.user.findUnique({
+  // Récupérer l'entreprise de l'utilisateur
+  const mainPrisma = getMainPrisma()
+  const dbUser = await mainPrisma.user.findUnique({
     where: { id: user.id },
-    include: { customer: true },
+    select: { companyId: true },
   })
 
-  if (!dbUser?.customerId) {
+  if (!dbUser?.companyId) {
     notFound()
   }
 
-  const quote = await prisma.quote.findUnique({
+  // Récupérer le client depuis la base de données de l'entreprise
+  const companyPrisma = await getUserPrisma()
+  if (!companyPrisma) {
+    notFound()
+  }
+
+  // Trouver le customer par email de l'utilisateur
+  const customer = await companyPrisma.customer.findFirst({
+    where: { email: user.email },
+  })
+
+  if (!customer) {
+    notFound()
+  }
+
+  const quote = await companyPrisma.quote.findUnique({
     where: { id: params.id },
     include: {
       customer: true,
@@ -43,7 +59,7 @@ export default async function ClientQuoteDetailPage({
     },
   })
 
-  if (!quote || quote.customerId !== dbUser.customerId) {
+  if (!quote || quote.customerId !== customer.id) {
     notFound()
   }
 

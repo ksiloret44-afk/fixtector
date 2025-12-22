@@ -202,7 +202,8 @@ export async function initCompanyDatabase(companyId: string): Promise<void> {
  * Ferme toutes les connexions Prisma
  */
 export async function disconnectAll(): Promise<void> {
-  for (const [key, prisma] of companyPrismaClients.entries()) {
+  const entries = Array.from(companyPrismaClients.entries())
+  for (const [key, prisma] of entries) {
     await prisma.$disconnect()
   }
   companyPrismaClients.clear()

@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect, notFound } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { getMainPrisma, getUserPrisma } from '@/lib/db-manager'
 import Navigation from '@/components/Navigation'
 import InvoiceDetails from '@/components/InvoiceDetails'
 
@@ -21,17 +21,34 @@ export default async function ClientInvoiceDetailPage({
     redirect('/')
   }
 
-  // Récupérer le Customer lié à l'utilisateur
-  const dbUser = await prisma.user.findUnique({
+  // Récupérer l'entreprise de l'utilisateur
+  const mainPrisma = getMainPrisma()
+  const dbUser = await mainPrisma.user.findUnique({
     where: { id: user.id },
-    include: { customer: true },
+    select: { companyId: true },
   })
 
-  if (!dbUser?.customerId) {
+  if (!dbUser?.companyId) {
     notFound()
   }
 
-  const invoice = await prisma.invoice.findUnique({
+  // Récupérer le client depuis la base de données de l'entreprise
+  // Note: Pour les clients, on doit trouver le Customer par email
+  const companyPrisma = await getUserPrisma()
+  if (!companyPrisma) {
+    notFound()
+  }
+
+  // Trouver le customer par email de l'utilisateur
+  const customer = await companyPrisma.customer.findFirst({
+    where: { email: user.email },
+  })
+
+  if (!customer) {
+    notFound()
+  }
+
+  const invoice = await companyPrisma.invoice.findUnique({
     where: { id: params.id },
     include: {
       customer: true,
@@ -48,7 +65,7 @@ export default async function ClientInvoiceDetailPage({
     },
   })
 
-  if (!invoice || invoice.customerId !== dbUser.customerId) {
+  if (!invoice || invoice.customerId !== customer.id) {
     notFound()
   }
 

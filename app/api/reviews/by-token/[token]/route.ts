@@ -109,7 +109,6 @@ export async function POST(
         comment: comment || null,
         customerName: customerName || null,
         submittedAt: new Date(),
-        isPublic: true, // Par défaut public, l'admin peut désapprouver
       },
     })
 

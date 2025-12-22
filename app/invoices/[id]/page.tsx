@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { getUserPrisma } from '@/lib/db-manager'
 import Navigation from '@/components/Navigation'
 import InvoiceDetails from '@/components/InvoiceDetails'
 import { notFound } from 'next/navigation'
@@ -20,7 +20,12 @@ export default async function InvoiceDetailPage({
     redirect('/login')
   }
 
-  const invoice = await prisma.invoice.findUnique({
+  const companyPrisma = await getUserPrisma()
+  if (!companyPrisma) {
+    notFound()
+  }
+
+  const invoice = await companyPrisma.invoice.findUnique({
     where: { id: params.id },
     include: {
       repair: {

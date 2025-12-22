@@ -1,6 +1,6 @@
 {
   "name": "fixtector-test",
-  "version": "1.1.8",
+  "version": "1.4.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3001",
@@ -26,6 +26,7 @@
     "lucide-react": "^0.303.0",
     "next": "^14.2.34",
     "next-auth": "^4.24.5",
+    "nodemailer": "^7.0.11",
     "react": "^18.2.0",
     "react-big-calendar": "^1.19.4",
     "react-dom": "^18.2.0",
@@ -40,6 +41,7 @@
     "@types/react": "^18.2.46",
     "@types/react-big-calendar": "^1.16.3",
     "@types/react-dom": "^18.2.18",
+    "@types/nodemailer": "^7.0.4",
     "autoprefixer": "^10.4.16",
     "eslint": "^8.56.0",
     "eslint-config-next": "14.0.4",

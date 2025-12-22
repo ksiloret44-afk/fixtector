@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { getMainPrisma, getUserPrisma } from '@/lib/db-manager'
 import Navigation from '@/components/Navigation'
 import Link from 'next/link'
 import { Wrench, FileText, Receipt, CheckCircle, Clock, XCircle } from 'lucide-react'
@@ -20,13 +20,52 @@ export default async function ClientPage() {
     redirect('/')
   }
 
-  // Récupérer le Customer lié à l'utilisateur
-  const dbUser = await prisma.user.findUnique({
+  // Récupérer l'entreprise de l'utilisateur
+  const mainPrisma = getMainPrisma()
+  const dbUser = await mainPrisma.user.findUnique({
     where: { id: user.id },
-    include: { customer: true },
+    select: { companyId: true },
   })
 
-  if (!dbUser?.customerId) {
+  if (!dbUser?.companyId) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+          <div className="px-4 py-6 sm:px-0">
+            <div className="bg-white shadow rounded-lg p-6 text-center">
+              <p className="text-gray-600">Votre compte n'est pas encore lié à une entreprise.</p>
+              <p className="text-sm text-gray-500 mt-2">Contactez l'administrateur pour résoudre ce problème.</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  // Récupérer le client depuis la base de données de l'entreprise
+  const companyPrisma = await getUserPrisma()
+  if (!companyPrisma) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+          <div className="px-4 py-6 sm:px-0">
+            <div className="bg-white shadow rounded-lg p-6 text-center">
+              <p className="text-gray-600">Erreur de connexion à la base de données.</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  // Trouver le customer par email de l'utilisateur
+  const customer = await companyPrisma.customer.findFirst({
+    where: { email: user.email },
+  })
+
+  if (!customer) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navigation />
@@ -44,8 +83,8 @@ export default async function ClientPage() {
 
   // Récupérer les réparations, devis et factures du client
   const [repairs, quotes, invoices] = await Promise.all([
-    prisma.repair.findMany({
-      where: { customerId: dbUser.customerId },
+    companyPrisma.repair.findMany({
+      where: { customerId: customer.id },
       include: {
         quote: true,
         invoice: true,
@@ -53,13 +92,13 @@ export default async function ClientPage() {
       orderBy: { createdAt: 'desc' },
       take: 10,
     }),
-    prisma.quote.findMany({
-      where: { customerId: dbUser.customerId },
+    companyPrisma.quote.findMany({
+      where: { customerId: customer.id },
       orderBy: { createdAt: 'desc' },
       take: 10,
     }),
-    prisma.invoice.findMany({
-      where: { customerId: dbUser.customerId },
+    companyPrisma.invoice.findMany({
+      where: { customerId: customer.id },
       orderBy: { createdAt: 'desc' },
       take: 10,
     }),
@@ -123,7 +162,7 @@ export default async function ClientPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Mon espace client</h1>
               <p className="mt-2 text-gray-600">
-                Bienvenue {dbUser.customer?.firstName} {dbUser.customer?.lastName}
+                Bienvenue {customer.firstName} {customer.lastName}
               </p>
             </div>
             <Link

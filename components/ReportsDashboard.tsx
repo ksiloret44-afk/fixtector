@@ -266,7 +266,7 @@ export default function ReportsDashboard() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
               <YAxis />
-              <Tooltip formatter={(value: number) => `${value.toFixed(2)} €`} />
+              <Tooltip formatter={(value: number | undefined) => value ? `${value.toFixed(2)} €` : '0.00 €'} />
               <Legend />
               <Line type="monotone" dataKey="revenue" stroke="#4F46E5" strokeWidth={2} />
             </LineChart>
@@ -283,7 +283,7 @@ export default function ReportsDashboard() {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                label={({ name, percent }: { name?: string; percent?: number }) => `${name || ''}: ${((percent || 0) * 100).toFixed(0)}%`}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"
@@ -305,7 +305,7 @@ export default function ReportsDashboard() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
-              <Tooltip formatter={(value: number) => `${value.toFixed(2)} €`} />
+              <Tooltip formatter={(value: number | undefined) => value ? `${value.toFixed(2)} €` : '0.00 €'} />
               <Legend />
               <Bar dataKey="revenue" fill="#4F46E5" />
             </BarChart>
@@ -320,7 +320,7 @@ export default function ReportsDashboard() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" />
               <YAxis dataKey="name" type="category" width={100} />
-              <Tooltip formatter={(value: number) => `${value.toFixed(2)} €`} />
+              <Tooltip formatter={(value: number | undefined) => value ? `${value.toFixed(2)} €` : '0.00 €'} />
               <Bar dataKey="revenue" fill="#10B981" />
             </BarChart>
           </ResponsiveContainer>
