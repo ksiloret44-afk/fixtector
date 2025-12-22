@@ -690,7 +690,9 @@ install_application() {
     sudo chown -R "$APP_USER:$APP_USER" "$APP_DIR"
     
     # Installer TOUTES les dépendances (sans --production)
-    sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && npm install"
+    # IMPORTANT : Désactiver NODE_ENV=production pour installer aussi les devDependencies
+    print_info "[DEBUG] Installation npm avec NODE_ENV non défini pour installer devDependencies"
+    sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && unset NODE_ENV && npm install"
     
     # Vérifier que tailwindcss a été installé
     if sudo -u "$APP_USER" test -d "$APP_DIR/node_modules/tailwindcss"; then
