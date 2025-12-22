@@ -522,7 +522,11 @@ install_application() {
     if [ "$INSTALL_METHOD" = "release" ]; then
         print_info "[DEBUG] Méthode d'installation: release"
         print_info "[DEBUG] GITHUB_TOKEN fourni: $([ -n "$GITHUB_TOKEN" ] && echo 'OUI' || echo 'NON')"
-        print_info "[DEBUG] Git disponible: $([ command_exists git ] && echo 'OUI' || echo 'NON')"
+        if command_exists git; then
+            print_info "[DEBUG] Git disponible: OUI"
+        else
+            print_info "[DEBUG] Git disponible: NON"
+        fi
         
         # Option 1 : Essayer de cloner le repository (plus fiable pour les repos privés)
         if command_exists git && [ -n "$GITHUB_TOKEN" ]; then
@@ -668,9 +672,10 @@ install_application() {
     
     print_success "Fichiers de l'application vérifiés (package.json trouvé)"
     
-    # Installer les dépendances npm
+    # Installer les dépendances npm (TOUTES les dépendances, y compris devDependencies pour le build)
     print_info "Installation des dépendances npm (cela peut prendre plusieurs minutes)..."
-    sudo -u "$APP_USER" npm install --production
+    print_info "[DEBUG] Installation de toutes les dépendances (production + devDependencies pour le build)"
+    sudo -u "$APP_USER" npm install
     
     print_success "Application installée"
 }
