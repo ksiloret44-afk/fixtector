@@ -562,9 +562,13 @@ install_application() {
         if [ ! -f "$APP_DIR/package.json" ]; then
             print_info "Téléchargement depuis GitHub release..."
             print_info "[DEBUG] Pas de token ou Git clone a échoué, utilisation de download_release"
-            local latest_version=$(get_latest_release "$GITHUB_REPO" "$GITHUB_TOKEN")
+            # Capturer uniquement stdout (les messages de debug vont vers stderr)
+            local latest_version=$(get_latest_release "$GITHUB_REPO" "$GITHUB_TOKEN" 2>&1 | grep -v "^\[" | tail -1)
+            # Nettoyer la version (enlever les caractères de contrôle)
+            latest_version=$(echo "$latest_version" | tr -d '\n\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            print_info "[DEBUG] Version récupérée et nettoyée: '$latest_version'"
             
-            if [ -z "$latest_version" ]; then
+            if [ -z "$latest_version" ] || [ "$latest_version" = "" ]; then
                 print_error "Impossible de récupérer la dernière version depuis GitHub"
                 print_info "Vérifiez votre connexion internet et le repository: $GITHUB_REPO"
                 if [ -z "$GITHUB_TOKEN" ]; then
