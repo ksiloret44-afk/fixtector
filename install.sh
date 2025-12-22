@@ -54,33 +54,34 @@ get_latest_release() {
     local repo=$1
     local token=$2
     
-    print_info "[DEBUG] Récupération de la dernière version pour $repo"
+    # Rediriger les messages de debug vers stderr pour qu'ils ne soient pas capturés dans la variable
+    print_info "[DEBUG] Récupération de la dernière version pour $repo" >&2
     
     # Toujours utiliser les tags pour avoir la dernière version (même s'il n'y a pas de release)
     # Les tags sont plus à jour que les releases
     local tags_url="https://api.github.com/repos/$repo/tags?per_page=10"
-    print_info "[DEBUG] URL tags: $tags_url"
+    print_info "[DEBUG] URL tags: $tags_url" >&2
     
     if [ -n "$token" ]; then
         local tags_response=$(curl -s -H "Authorization: Bearer $token" -H "Accept: application/vnd.github.v3+json" "$tags_url")
-        print_info "[DEBUG] Requête tags avec token (longueur réponse: ${#tags_response})"
+        print_info "[DEBUG] Requête tags avec token (longueur réponse: ${#tags_response})" >&2
     else
         local tags_response=$(curl -s -H "Accept: application/vnd.github.v3+json" "$tags_url")
-        print_info "[DEBUG] Requête tags sans token (longueur réponse: ${#tags_response})"
+        print_info "[DEBUG] Requête tags sans token (longueur réponse: ${#tags_response})" >&2
     fi
     
-    # Debug: afficher les premiers tags trouvés
+    # Debug: afficher les premiers tags trouvés (vers stderr)
     if echo "$tags_response" | grep -q '"name"'; then
-        print_info "[DEBUG] Tags trouvés (bruts):"
+        print_info "[DEBUG] Tags trouvés (bruts):" >&2
         echo "$tags_response" | grep '"name"' | head -5 | sed -E 's/.*"name":\s*"([^"]+)".*/\1/' | while read tag; do
-            print_info "[DEBUG]   - $tag"
+            print_info "[DEBUG]   - $tag" >&2
         done
         
         # Extraire tous les tags
         local all_tags=$(echo "$tags_response" | grep '"name"' | sed -E 's/.*"name":\s*"([^"]+)".*/\1/')
-        print_info "[DEBUG] Tous les tags extraits:"
+        print_info "[DEBUG] Tous les tags extraits:" >&2
         echo "$all_tags" | while read tag; do
-            print_info "[DEBUG]   - $tag"
+            print_info "[DEBUG]   - $tag" >&2
         done
         
         # Trier les tags par version (semver) - version la plus récente en premier
@@ -111,17 +112,18 @@ get_latest_release() {
                 latest_tag="$tag"
             fi
             
-            print_info "[DEBUG] Tag: $tag -> Version: $current_version (max: $max_version)"
+            print_info "[DEBUG] Tag: $tag -> Version: $current_version (max: $max_version)" >&2
         done <<< "$all_tags"
         
         # Si le tri a échoué, utiliser le premier tag trouvé
         if [ -z "$latest_tag" ]; then
             latest_tag=$(echo "$tags_response" | grep '"name"' | head -1 | sed -E 's/.*"name":\s*"([^"]+)".*/\1/')
-            print_warning "[DEBUG] Tri échoué, utilisation du premier tag: $latest_tag"
+            print_warning "[DEBUG] Tri échoué, utilisation du premier tag: $latest_tag" >&2
         else
-            print_success "[DEBUG] Dernier tag sélectionné (après tri): $latest_tag (version: $max_version)"
+            print_success "[DEBUG] Dernier tag sélectionné (après tri): $latest_tag (version: $max_version)" >&2
         fi
         
+        # Retourner SEULEMENT le tag (sans les messages de debug)
         echo "$latest_tag"
     else
         print_warning "[DEBUG] Aucun tag trouvé dans la réponse, tentative avec releases..."
