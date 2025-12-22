@@ -24,7 +24,7 @@
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.3",
     "lucide-react": "^0.303.0",
-    "next": "14.0.4",
+    "next": "^14.2.34",
     "next-auth": "^4.24.5",
     "react": "^18.2.0",
     "react-big-calendar": "^1.19.4",

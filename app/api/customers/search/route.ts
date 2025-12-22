@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getUserPrisma } from '@/lib/db-manager'
 
 export async function GET(request: Request) {
   try {
@@ -13,8 +13,17 @@ export async function GET(request: Request) {
     const queryTrimmed = query.trim()
     const queryLower = queryTrimmed.toLowerCase()
     
+    // Récupérer le client Prisma pour l'utilisateur connecté
+    const companyPrisma = await getUserPrisma()
+    if (!companyPrisma) {
+      return NextResponse.json(
+        { error: 'Erreur de connexion' },
+        { status: 500 }
+      )
+    }
+    
     // Récupérer tous les clients (limité à 50 pour les performances)
-    const allCustomers = await prisma.customer.findMany({
+    const allCustomers = await companyPrisma.customer.findMany({
       take: 50,
       orderBy: { createdAt: 'desc' },
     })

@@ -2,7 +2,7 @@
  * Service de génération de factures électroniques conformes à la réforme 2025-2027
  * Formats supportés : UBL 2.1, Factur-X (EN 16931)
  */
-import { XMLBuilder } from 'xmlbuilder2'
+import { create } from 'xmlbuilder2'
 
 interface CompanyInfo {
   name: string
@@ -63,7 +63,7 @@ interface InvoiceData {
  * Conforme à la norme EN 16931 et à la réforme française 2025-2027
  */
 export function generateUBLInvoice(invoice: InvoiceData): string {
-  const builder = XMLBuilder.create({ version: '1.0', encoding: 'UTF-8' })
+  const builder = create({ version: '1.0', encoding: 'UTF-8' })
   
   const root = builder.ele('Invoice', {
     'xmlns': 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2',

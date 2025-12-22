@@ -142,9 +142,15 @@ async function sendSMS(
       try {
         twilio = require('twilio')
       } catch (error) {
-        console.error('Twilio non installé. Installez-le avec: npm install twilio')
-        throw new Error('Twilio non disponible')
+        console.warn('Twilio non installé. SMS désactivé. Installez-le avec: npm install twilio')
+        return false
       }
+      
+      if (!twilio) {
+        console.warn('Twilio non disponible')
+        return false
+      }
+      
       const client = twilio(
         process.env.TWILIO_ACCOUNT_SID || config.smsApiKey,
         process.env.TWILIO_AUTH_TOKEN
