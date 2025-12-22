@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { getUserPrisma } from '@/lib/db-manager'
+import { getMainPrisma } from '@/lib/db-manager'
 
 export async function PATCH(
   request: Request,
@@ -13,20 +13,24 @@ export async function PATCH(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
+    // Vérifier que l'utilisateur est admin
+    if ((session.user as any).role !== 'admin') {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+    }
+
     const body = await request.json()
     const { isApproved } = body
 
-    const companyPrisma = await getUserPrisma()
-    if (!companyPrisma) {
-      return NextResponse.json(
-        { error: 'Vous devez être associé à une entreprise' },
-        { status: 403 }
-      )
-    }
-
-    await companyPrisma.review.update({
+    // CompanyReview est dans la base principale, pas dans la base entreprise
+    const mainPrisma = getMainPrisma()
+    
+    await mainPrisma.companyReview.update({
       where: { id: params.id },
-      data: { isApproved },
+      data: { 
+        isApproved,
+        approvedAt: isApproved ? new Date() : null,
+        approvedBy: isApproved ? (session.user as any).id : null,
+      },
     })
 
     return NextResponse.json({ success: true })
