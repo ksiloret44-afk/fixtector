@@ -675,7 +675,31 @@ install_application() {
     # Installer les dépendances npm (TOUTES les dépendances, y compris devDependencies pour le build)
     print_info "Installation des dépendances npm (cela peut prendre plusieurs minutes)..."
     print_info "[DEBUG] Installation de toutes les dépendances (production + devDependencies pour le build)"
-    sudo -u "$APP_USER" npm install
+    print_info "[DEBUG] Répertoire de travail: $(pwd)"
+    print_info "[DEBUG] Utilisateur: $(whoami)"
+    print_info "[DEBUG] Vérification package.json avant npm install..."
+    if [ -f "package.json" ]; then
+        print_info "[DEBUG] package.json trouvé, contenu devDependencies:"
+        grep -A 10 '"devDependencies"' package.json | head -15 || print_warning "[DEBUG] Impossible de lire devDependencies"
+    else
+        print_error "[DEBUG] package.json non trouvé dans $(pwd)"
+    fi
+    
+    # S'assurer qu'on est dans le bon répertoire et que l'utilisateur a les bonnes permissions
+    cd "$APP_DIR"
+    sudo chown -R "$APP_USER:$APP_USER" "$APP_DIR"
+    
+    # Installer TOUTES les dépendances (sans --production)
+    sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && npm install"
+    
+    # Vérifier que tailwindcss a été installé
+    if sudo -u "$APP_USER" test -d "$APP_DIR/node_modules/tailwindcss"; then
+        print_success "[DEBUG] tailwindcss installé avec succès"
+    else
+        print_error "[DEBUG] tailwindcss NON installé - vérification nécessaire"
+        print_info "[DEBUG] Contenu de node_modules:"
+        sudo -u "$APP_USER" ls -la "$APP_DIR/node_modules" | head -20 || true
+    fi
     
     print_success "Application installée"
 }
