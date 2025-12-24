@@ -1,14 +1,45 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Bell, Database, Globe, Shield, Receipt, Mail, MessageSquare, Building2, Upload, X, Image as ImageIcon, Lock, Unlock } from 'lucide-react'
+import { Bell, Database, Shield, Receipt, Mail, MessageSquare, Building2, Upload, X, Image as ImageIcon, Lock, Unlock, Server, Send, CheckCircle, AlertCircle, Terminal } from 'lucide-react'
+import VHostConfig from './VHostConfig'
 
-export default function SettingsForm() {
+interface SettingsFormProps {
+  userRole?: string
+}
+
+export default function SettingsForm({ userRole }: SettingsFormProps) {
+  // Restaurer l'onglet actif depuis localStorage ou utiliser 'general' par défaut
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedTab = localStorage.getItem('settingsActiveTab')
+      return savedTab || 'general'
+    }
+    return 'general'
+  })
+  
+  // Sauvegarder l'onglet actif dans localStorage
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('settingsActiveTab', tabId)
+    }
+  }
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState('')
   const [taxRate, setTaxRate] = useState('20.0')
   const [companyType, setCompanyType] = useState('auto-entrepreneur')
   const [loadingSettings, setLoadingSettings] = useState(true)
+
+  // Debug: vérifier le rôle utilisateur
+  useEffect(() => {
+    console.log('SettingsForm - userRole:', userRole)
+  }, [userRole])
+
+  // Debug: vérifier le rôle utilisateur
+  useEffect(() => {
+    console.log('SettingsForm - userRole:', userRole)
+  }, [userRole])
   
   // Informations légales de l'entreprise
   const [companyInfo, setCompanyInfo] = useState({
@@ -44,12 +75,23 @@ export default function SettingsForm() {
   const [smtpFrom, setSmtpFrom] = useState('')
   const [smsProvider, setSmsProvider] = useState('twilio')
   const [smsApiKey, setSmsApiKey] = useState('')
+  const [smsAuthToken, setSmsAuthToken] = useState('')
   const [smsFrom, setSmsFrom] = useState('')
+  const [smsSender, setSmsSender] = useState('') // Pour OVH: sender différent du service name
+  const [smsConsumerKey, setSmsConsumerKey] = useState('') // Pour OVH Consumer Key
+  const [smsTestNumber, setSmsTestNumber] = useState('')
+  const [smsTestLoading, setSmsTestLoading] = useState(false)
   
   // Paramètres SSL
   const [sslEnabled, setSslEnabled] = useState(false)
   const [forceHttps, setForceHttps] = useState(false)
   const [sslStatus, setSslStatus] = useState<'checking' | 'active' | 'inactive' | 'error'>('checking')
+  
+  // Terminal/Logs
+  const [logs, setLogs] = useState<any[]>([])
+  const [logsLoading, setLogsLoading] = useState(false)
+  const [logsAutoRefresh, setLogsAutoRefresh] = useState(true)
+  const [logsFilter, setLogsFilter] = useState<'all' | 'info' | 'warn' | 'error' | 'debug'>('all')
 
   // Types d'entreprises françaises avec leurs taux de TVA
   const companyTypes = [
@@ -63,6 +105,46 @@ export default function SettingsForm() {
     { value: 'snc', label: 'SNC (Société en Nom Collectif)', defaultTaxRate: '20', description: 'TVA standard 20%' },
     { value: 'autre', label: 'Autre', defaultTaxRate: '20', description: 'TVA personnalisable' },
   ]
+
+  // Charger les logs du terminal
+  const loadLogs = async () => {
+    if (!userRole || userRole !== 'admin') return
+    
+    setLogsLoading(true)
+    try {
+      const params = new URLSearchParams()
+      params.append('count', '500')
+      if (logsFilter !== 'all') {
+        params.append('level', logsFilter)
+      }
+      
+      const response = await fetch(`/api/logs?${params.toString()}`)
+      if (response.ok) {
+        const data = await response.json()
+        setLogs(data.logs || [])
+      }
+    } catch (err) {
+      console.error('Erreur lors du chargement des logs:', err)
+    } finally {
+      setLogsLoading(false)
+    }
+  }
+
+  // Auto-refresh des logs
+  useEffect(() => {
+    if (activeTab === 'terminal' && logsAutoRefresh && userRole === 'admin') {
+      loadLogs()
+      const interval = setInterval(loadLogs, 2000) // Rafraîchir toutes les 2 secondes
+      return () => clearInterval(interval)
+    }
+  }, [activeTab, logsAutoRefresh, logsFilter, userRole])
+
+  // Charger les logs quand on change d'onglet vers terminal
+  useEffect(() => {
+    if (activeTab === 'terminal' && userRole === 'admin') {
+      loadLogs()
+    }
+  }, [activeTab, userRole])
 
   useEffect(() => {
     // Charger les paramètres
@@ -95,7 +177,10 @@ export default function SettingsForm() {
         if (data.settings?.smtpFrom) setSmtpFrom(data.settings.smtpFrom)
         if (data.settings?.smsProvider) setSmsProvider(data.settings.smsProvider)
         if (data.settings?.smsApiKey) setSmsApiKey(data.settings.smsApiKey)
+        if (data.settings?.smsAuthToken) setSmsAuthToken(data.settings.smsAuthToken)
         if (data.settings?.smsFrom) setSmsFrom(data.settings.smsFrom)
+        if (data.settings?.smsConsumerKey) setSmsConsumerKey(data.settings.smsConsumerKey)
+        if (data.settings?.smsSender) setSmsSender(data.settings.smsSender)
         // Charger les paramètres SSL
         if (data.settings?.sslEnabled) {
           setSslEnabled(data.settings.sslEnabled === 'true')
@@ -288,6 +373,158 @@ export default function SettingsForm() {
     }
   }
 
+  const handleSmsTest = async () => {
+    if (!smsTestNumber || !smsTestNumber.trim()) {
+      setSuccess('Veuillez entrer un numéro de téléphone')
+      setTimeout(() => setSuccess(''), 3000)
+      return
+    }
+
+    if (!smsEnabled) {
+      setSuccess('Veuillez d\'abord activer les notifications SMS')
+      setTimeout(() => setSuccess(''), 3000)
+      return
+    }
+
+    if (!smsProvider || !smsApiKey) {
+      setSuccess('Veuillez configurer le fournisseur SMS et la clé API')
+      setTimeout(() => setSuccess(''), 3000)
+      return
+    }
+
+    if (smsProvider === 'twilio' && !smsAuthToken) {
+      setSuccess('Veuillez configurer l\'Auth Token pour Twilio')
+      setTimeout(() => setSuccess(''), 3000)
+      return
+    }
+
+    setSmsTestLoading(true)
+    setSuccess('')
+
+    try {
+      const response = await fetch('/api/settings/sms/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phoneNumber: smsTestNumber.trim(),
+          provider: smsProvider,
+          apiKey: smsApiKey,
+          authToken: smsAuthToken,
+          from: smsFrom,
+          consumerKey: smsConsumerKey,
+          sender: smsSender,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setSuccess('✅ SMS de test envoyé avec succès ! Vérifiez votre téléphone.')
+        setTimeout(() => setSuccess(''), 5000)
+      } else {
+        const errorMsg = data.error || 'Erreur lors de l\'envoi du SMS de test'
+        let detailsText = ''
+        
+        if (data.details) {
+          if (typeof data.details === 'string') {
+            detailsText = `\n\nDétails: ${data.details}`
+          } else if (typeof data.details === 'object') {
+            // Formater l'objet détails de manière lisible
+            const detailsParts: string[] = []
+            
+            if (data.details.provider) {
+              detailsParts.push(`Fournisseur: ${data.details.provider}`)
+            }
+            if (data.details.apiKey !== undefined) {
+              const apiKeyValue = data.details.apiKey === 'présent' ? '✓ Présent' : 
+                                 data.details.apiKey === 'manquant' ? '✗ Manquant' : 
+                                 data.details.apiKey
+              detailsParts.push(`Clé API: ${apiKeyValue}`)
+            }
+            if (data.details.authToken !== undefined) {
+              const authTokenValue = data.details.authToken === 'présent' ? '✓ Présent' : 
+                                    data.details.authToken === 'manquant' ? '✗ Manquant' : 
+                                    data.details.authToken
+              detailsParts.push(`Auth Token: ${authTokenValue}`)
+            }
+            if (data.details.from !== undefined) {
+              const fromValue = data.details.from === 'manquant' ? '✗ Manquant' : data.details.from
+              detailsParts.push(`Expéditeur: ${fromValue}`)
+            }
+            if (data.details.consumerKey !== undefined && data.details.provider === 'ovh') {
+              const consumerKeyValue = data.details.consumerKey === 'présent' ? '✓ Présent' : 
+                                      data.details.consumerKey === 'manquant ou vide' ? '✗ Manquant ou vide' : 
+                                      data.details.consumerKey
+              detailsParts.push(`Consumer Key: ${consumerKeyValue}`)
+            }
+            
+            // Afficher l'erreur Twilio en premier si disponible (c'est le plus important)
+            if (data.details.twilioError) {
+              detailsParts.push('') // Ligne vide pour séparer
+              detailsParts.push('=== Erreur Twilio ===')
+              const twilioErr = data.details.twilioError
+              if (twilioErr.code) {
+                detailsParts.push(`Code: ${twilioErr.code}`)
+              }
+              if (twilioErr.message) {
+                detailsParts.push(`Message: ${twilioErr.message}`)
+              }
+              if (twilioErr.status) {
+                detailsParts.push(`Status HTTP: ${twilioErr.status}`)
+              }
+              if (twilioErr.moreInfo) {
+                detailsParts.push(`Plus d'infos: ${twilioErr.moreInfo}`)
+              }
+              
+              // Ajouter des instructions spécifiques pour l'erreur 21608
+              if (twilioErr.code === '21608' || twilioErr.code === 21608) {
+                detailsParts.push('') // Ligne vide
+                detailsParts.push('=== Solution ===')
+                detailsParts.push('Vous utilisez un compte Twilio Trial.')
+                detailsParts.push('Options:')
+                detailsParts.push('1. Vérifier le numéro de destination dans la console Twilio:')
+                detailsParts.push('   https://console.twilio.com/us1/develop/phone-numbers/manage/verified')
+                detailsParts.push('2. Ou passer à un compte payant pour envoyer à n\'importe quel numéro:')
+                detailsParts.push('   https://console.twilio.com/billing')
+              }
+            }
+            
+            // Afficher aussi le message général si présent
+            if (data.details.message && !data.details.twilioError) {
+              detailsParts.push('') // Ligne vide pour séparer
+              detailsParts.push(`Note: ${data.details.message}`)
+            }
+            
+            if (data.details.originalError) {
+              if (!data.details.twilioError) {
+                detailsParts.push('') // Ligne vide pour séparer
+              }
+              detailsParts.push(`Erreur originale: ${data.details.originalError}`)
+            }
+            
+            if (detailsParts.length > 0) {
+              detailsText = `\n\n${detailsParts.join('\n')}`
+            }
+          }
+        }
+        
+        // Si pas de détails mais qu'on a une erreur, afficher au moins le message d'erreur
+        if (!detailsText && data.error) {
+          detailsText = `\n\nMessage: ${data.error}`
+        }
+        
+        setSuccess(`❌ ${errorMsg}${detailsText}`)
+        setTimeout(() => setSuccess(''), 10000)
+      }
+    } catch (err: any) {
+      console.error('Erreur:', err)
+      setSuccess('Erreur lors de l\'envoi du SMS de test: ' + (err.message || 'Erreur inconnue'))
+      setTimeout(() => setSuccess(''), 5000)
+    } finally {
+      setSmsTestLoading(false)
+    }
+  }
+
   const handleSave = async () => {
     setLoading(true)
     setSuccess('')
@@ -309,7 +546,10 @@ export default function SettingsForm() {
           smtpFrom,
           smsProvider,
           smsApiKey: smsApiKey || undefined,
+          smsAuthToken: smsAuthToken,
           smsFrom,
+          smsConsumerKey: smsConsumerKey || undefined,
+          smsSender: smsSender || undefined,
           sslEnabled: sslEnabled.toString(),
           forceHttps: forceHttps.toString(),
         }),
@@ -322,13 +562,47 @@ export default function SettingsForm() {
         body: JSON.stringify(companyInfo),
       })
 
+      const settingsData = await settingsResponse.json()
+      const companyData = companyResponse.ok ? await companyResponse.json() : { error: 'Erreur lors de la sauvegarde des informations de l\'entreprise' }
+      
       if (settingsResponse.ok && companyResponse.ok) {
         setSuccess('Paramètres enregistrés avec succès')
         setTimeout(() => setSuccess(''), 3000)
+        // Recharger les paramètres sans recharger toute la page
+        // On recharge juste les données nécessaires
+        const reloadSettings = async () => {
+          try {
+            const response = await fetch('/api/settings')
+            const data = await response.json()
+            if (data.settings) {
+              if (data.settings.taxRate) setTaxRate(data.settings.taxRate)
+              if (data.settings.companyType) setCompanyType(data.settings.companyType)
+              if (data.settings.emailEnabled !== undefined) setEmailEnabled(data.settings.emailEnabled === 'true')
+              if (data.settings.smsEnabled !== undefined) setSmsEnabled(data.settings.smsEnabled === 'true')
+              if (data.settings.smtpHost) setSmtpHost(data.settings.smtpHost)
+              if (data.settings.smtpPort) setSmtpPort(data.settings.smtpPort)
+              if (data.settings.smtpUser) setSmtpUser(data.settings.smtpUser)
+              if (data.settings.smtpFrom) setSmtpFrom(data.settings.smtpFrom)
+              if (data.settings.smsProvider) setSmsProvider(data.settings.smsProvider)
+              if (data.settings.smsFrom) setSmsFrom(data.settings.smsFrom)
+              if (data.settings.sslEnabled !== undefined) setSslEnabled(data.settings.sslEnabled === 'true')
+              if (data.settings.forceHttps !== undefined) setForceHttps(data.settings.forceHttps === 'true')
+            }
+          } catch (err) {
+            console.error('Erreur lors du rechargement des paramètres:', err)
+          }
+        }
+        reloadSettings()
       } else {
-        const settingsData = await settingsResponse.json()
-        const companyData = await companyResponse.json()
-        setSuccess(settingsData.error || companyData.error || 'Erreur lors de l\'enregistrement')
+        const errorMsg = settingsData.error || companyData.error || 'Erreur lors de l\'enregistrement'
+        console.error('[SettingsForm] Erreur de sauvegarde:', {
+          settingsResponse: settingsResponse.status,
+          companyResponse: companyResponse.status,
+          settingsData,
+          companyData,
+        })
+        setSuccess(errorMsg)
+        setTimeout(() => setSuccess(''), 5000)
       }
     } catch (err) {
       setSuccess('Erreur lors de l\'enregistrement')
@@ -337,18 +611,166 @@ export default function SettingsForm() {
     }
   }
 
+  const tabs = [
+    { id: 'general', label: 'Général', icon: Building2 },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    ...(userRole === 'admin' ? [{ id: 'ssl', label: 'SSL/HTTPS', icon: Lock }] : []),
+    { id: 'database', label: 'Base de données', icon: Database },
+    { id: 'security', label: 'Sécurité', icon: Shield },
+    ...(userRole === 'admin' ? [{ id: 'vhost', label: 'Virtual Host', icon: Server }] : []),
+    ...(userRole === 'admin' ? [{ id: 'terminal', label: 'Terminal', icon: Terminal }] : []),
+  ].filter(Boolean) // S'assurer que tous les éléments sont valides
+
   return (
     <div className="space-y-6">
+      {/* Onglets */}
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <div className="border-b border-gray-200 dark:border-gray-700">
+          <nav className="flex -mb-px" aria-label="Tabs">
+            {tabs.map((tab) => {
+              const Icon = tab.icon
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabChange(tab.id)}
+                  className={`
+                    flex items-center px-6 py-4 text-sm font-medium border-b-2 transition-colors
+                    ${activeTab === tab.id
+                      ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                    }
+                  `}
+                >
+                  <Icon className="h-5 w-5 mr-2" />
+                  {tab.label}
+                </button>
+              )
+            })}
+          </nav>
+        </div>
+      </div>
+
+      {/* Contenu des onglets */}
+      {activeTab === 'vhost' && userRole === 'admin' && (
+        <VHostConfig />
+      )}
+
+      {activeTab === 'terminal' && userRole === 'admin' && (
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <Terminal className="h-5 w-5 mr-2 text-gray-400 dark:text-gray-500" />
+              <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Terminal - Logs du serveur</h2>
+            </div>
+            <div className="flex items-center space-x-4">
+              <select
+                value={logsFilter}
+                onChange={(e) => setLogsFilter(e.target.value as any)}
+                className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+              >
+                <option value="all">Tous les logs</option>
+                <option value="info">Info</option>
+                <option value="warn">Avertissements</option>
+                <option value="error">Erreurs</option>
+                <option value="debug">Debug</option>
+              </select>
+              <label className="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={logsAutoRefresh}
+                  onChange={(e) => setLogsAutoRefresh(e.target.checked)}
+                  className="mr-2"
+                />
+                Auto-refresh
+              </label>
+              <button
+                onClick={loadLogs}
+                disabled={logsLoading}
+                className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
+              >
+                {logsLoading ? 'Chargement...' : 'Actualiser'}
+              </button>
+              <button
+                onClick={async () => {
+                  if (confirm('Voulez-vous vraiment vider tous les logs ?')) {
+                    try {
+                      const response = await fetch('/api/logs', { method: 'DELETE' })
+                      if (response.ok) {
+                        setLogs([])
+                        setSuccess('Logs vidés avec succès')
+                        setTimeout(() => setSuccess(''), 3000)
+                      }
+                    } catch (err) {
+                      console.error('Erreur lors du vidage des logs:', err)
+                    }
+                  }
+                }}
+                className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50"
+              >
+                Vider
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-gray-900 dark:bg-black rounded-lg p-4 font-mono text-sm overflow-auto max-h-[600px]">
+            {logs.length === 0 ? (
+              <div className="text-gray-500 dark:text-gray-400">
+                {logsLoading ? 'Chargement des logs...' : 'Aucun log disponible'}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {logs.map((log, index) => {
+                  const timestamp = new Date(log.timestamp).toLocaleTimeString('fr-FR')
+                  const levelColors = {
+                    info: 'text-blue-400',
+                    warn: 'text-yellow-400',
+                    error: 'text-red-400',
+                    debug: 'text-gray-400',
+                  }
+                  const levelColor = levelColors[log.level as keyof typeof levelColors] || 'text-gray-300'
+
+                  return (
+                    <div key={index} className="flex items-start">
+                      <span className="text-gray-500 dark:text-gray-600 mr-3 min-w-[80px]">
+                        {timestamp}
+                      </span>
+                      <span className={`min-w-[60px] font-bold ${levelColor}`}>
+                        [{log.level.toUpperCase()}]
+                      </span>
+                      <span className="text-gray-300 dark:text-gray-400 flex-1">
+                        {log.message}
+                        {log.data && (
+                          <span className="text-gray-500 dark:text-gray-600 ml-2">
+                            {typeof log.data === 'object' ? JSON.stringify(log.data, null, 2) : String(log.data)}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+            <p>Total: {logs.length} logs affichés</p>
+            <p className="mt-1">Les logs sont automatiquement mis à jour toutes les 2 secondes lorsque l'auto-refresh est activé.</p>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'general' && (
+        <>
       {/* Logo de l'entreprise */}
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <div className="flex items-center mb-4">
-          <ImageIcon className="h-5 w-5 mr-2 text-gray-400" />
-          <h2 className="text-lg font-medium text-gray-900">Logo de l'entreprise</h2>
+          <ImageIcon className="h-5 w-5 mr-2 text-gray-400 dark:text-gray-500" />
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Logo de l'entreprise</h2>
         </div>
         
         <div className="space-y-4">
           <div>
-            <p className="text-sm text-gray-600 mb-3">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
               Le logo sera utilisé dans les devis, factures et pages de suivi client.
             </p>
             
@@ -385,11 +807,11 @@ export default function SettingsForm() {
             ) : (
               <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <Upload className="h-8 w-8 mb-2 text-gray-400" />
-                  <p className="mb-2 text-sm text-gray-500">
+                  <Upload className="h-8 w-8 mb-2 text-gray-400 dark:text-gray-500" />
+                  <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
                     <span className="font-semibold">Cliquez pour uploader</span> ou glissez-déposez
                   </p>
-                  <p className="text-xs text-gray-500">PNG, JPG, SVG ou WebP (MAX. 5MB)</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, SVG ou WebP (MAX. 5MB)</p>
                 </div>
                 <input
                   type="file"
@@ -402,7 +824,7 @@ export default function SettingsForm() {
             )}
             
             {logoUploading && (
-              <div className="mt-2 text-sm text-gray-500">
+              <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                 Upload en cours...
               </div>
             )}
@@ -411,16 +833,16 @@ export default function SettingsForm() {
       </div>
 
       {/* Informations légales de l'entreprise */}
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <div className="flex items-center mb-4">
-          <Building2 className="h-5 w-5 mr-2 text-gray-400" />
-          <h2 className="text-lg font-medium text-gray-900">Informations légales de l'entreprise</h2>
+          <Building2 className="h-5 w-5 mr-2 text-gray-400 dark:text-gray-500" />
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Informations légales de l'entreprise</h2>
         </div>
         
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Nom de l'entreprise <span className="text-red-500">*</span>
               </label>
               <input
@@ -432,7 +854,7 @@ export default function SettingsForm() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Forme juridique
               </label>
               <input
@@ -447,7 +869,7 @@ export default function SettingsForm() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 SIRET
               </label>
               <input
@@ -459,7 +881,7 @@ export default function SettingsForm() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 SIREN
               </label>
               <input
@@ -474,7 +896,7 @@ export default function SettingsForm() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 RCS
               </label>
               <input
@@ -486,7 +908,7 @@ export default function SettingsForm() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Ville du RCS
               </label>
               <input
@@ -510,14 +932,14 @@ export default function SettingsForm() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               placeholder="FR12345678901"
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Format: FR + 2 chiffres clés + SIREN (ex: FR12345678901)
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Capital social
               </label>
               <input
@@ -529,7 +951,7 @@ export default function SettingsForm() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Directeur / Représentant légal
               </label>
               <input
@@ -557,7 +979,7 @@ export default function SettingsForm() {
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Code postal
               </label>
               <input
@@ -569,7 +991,7 @@ export default function SettingsForm() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Ville
               </label>
               <input
@@ -581,7 +1003,7 @@ export default function SettingsForm() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Pays
               </label>
               <input
@@ -596,7 +1018,7 @@ export default function SettingsForm() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Email
               </label>
               <input
@@ -608,7 +1030,7 @@ export default function SettingsForm() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Téléphone
               </label>
               <input
@@ -640,19 +1062,23 @@ export default function SettingsForm() {
           </div>
         </div>
       </div>
+        </>
+      )}
 
+      {activeTab === 'notifications' && (
+        <>
       {/* Notifications Email */}
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <div className="flex items-center mb-4">
-          <Mail className="h-5 w-5 mr-2 text-gray-400" />
-          <h2 className="text-lg font-medium text-gray-900">Notifications Email</h2>
+          <Mail className="h-5 w-5 mr-2 text-gray-400 dark:text-gray-500" />
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Notifications Email</h2>
         </div>
         
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-900">Activer les notifications email</p>
-              <p className="text-sm text-gray-500">Envoyer automatiquement des emails aux clients à chaque étape</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Activer les notifications email</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Envoyer automatiquement des emails aux clients à chaque étape</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input 
@@ -668,7 +1094,7 @@ export default function SettingsForm() {
           {emailEnabled && (
             <div className="space-y-4 pt-4 border-t border-gray-200">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Serveur SMTP (host)
                 </label>
                 <input
@@ -681,7 +1107,7 @@ export default function SettingsForm() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Port SMTP
                   </label>
                   <input
@@ -693,7 +1119,7 @@ export default function SettingsForm() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Email expéditeur
                   </label>
                   <input
@@ -706,7 +1132,7 @@ export default function SettingsForm() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Utilisateur SMTP
                 </label>
                 <input
@@ -718,7 +1144,7 @@ export default function SettingsForm() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Mot de passe SMTP
                 </label>
                 <input
@@ -728,7 +1154,7 @@ export default function SettingsForm() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="Mot de passe ou token d'application"
                 />
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Pour Gmail, utilisez un mot de passe d'application
                 </p>
               </div>
@@ -738,17 +1164,17 @@ export default function SettingsForm() {
       </div>
 
       {/* Notifications SMS */}
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <div className="flex items-center mb-4">
-          <MessageSquare className="h-5 w-5 mr-2 text-gray-400" />
-          <h2 className="text-lg font-medium text-gray-900">Notifications SMS</h2>
+          <MessageSquare className="h-5 w-5 mr-2 text-gray-400 dark:text-gray-500" />
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Notifications SMS</h2>
         </div>
         
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-900">Activer les notifications SMS</p>
-              <p className="text-sm text-gray-500">Envoyer automatiquement des SMS aux clients à chaque étape</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Activer les notifications SMS</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Envoyer automatiquement des SMS aux clients à chaque étape</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input 
@@ -764,22 +1190,23 @@ export default function SettingsForm() {
           {smsEnabled && (
             <div className="space-y-4 pt-4 border-t border-gray-200">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Fournisseur SMS
                 </label>
                 <select
                   value={smsProvider}
                   onChange={(e) => setSmsProvider(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value="twilio">Twilio</option>
                   <option value="ovh">OVH</option>
+                  <option value="smsapi">SMSAPI</option>
                   <option value="custom">API personnalisée</option>
                 </select>
               </div>
               {smsProvider === 'custom' ? (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     URL de l'API personnalisée
                   </label>
                   <input
@@ -789,35 +1216,227 @@ export default function SettingsForm() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="https://api.example.com/sms"
                   />
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     L'API doit accepter POST avec {"{"}"to": "numéro", "message": "texte", "from": "expéditeur"{"}"}
                   </p>
                 </div>
               ) : (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {smsProvider === 'twilio' ? 'Account SID / API Key' : 'Clé API'}
-                  </label>
-                  <input
-                    type="text"
-                    value={smsApiKey}
-                    onChange={(e) => setSmsApiKey(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder={smsProvider === 'twilio' ? 'ACxxxxxxxxxxxxx' : 'Votre clé API'}
-                  />
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {smsProvider === 'twilio' 
+                        ? 'Account SID' 
+                        : smsProvider === 'smsapi' 
+                        ? 'API Key SMSAPI' 
+                        : smsProvider === 'ovh'
+                        ? 'Application Key OVH'
+                        : 'Clé API'}
+                    </label>
+                    <input
+                      type="text"
+                      value={smsApiKey}
+                      onChange={(e) => setSmsApiKey(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder={
+                        smsProvider === 'twilio' 
+                          ? 'ACxxxxxxxxxxxxx' 
+                          : smsProvider === 'smsapi' 
+                          ? 'Votre clé API SMSAPI' 
+                          : smsProvider === 'ovh'
+                          ? 'Votre Application Key OVH'
+                          : 'Votre clé API'
+                      }
+                    />
+                    {smsProvider === 'smsapi' && (
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Vous pouvez obtenir votre clé API sur <a href="https://www.smsapi.com/" target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:underline">smsapi.com</a>
+                      </p>
+                    )}
+                    {smsProvider === 'ovh' && (
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Obtenez vos identifiants API sur <a href="https://eu.api.ovh.com/createToken/" target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:underline">console OVH</a>. Vous avez besoin de l'Application Key.
+                      </p>
+                    )}
+                  </div>
+                  {(smsProvider === 'twilio' || smsProvider === 'ovh') && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {smsProvider === 'twilio' ? 'Auth Token' : 'Application Secret OVH'}
+                      </label>
+                      <input
+                        type="password"
+                        value={smsAuthToken}
+                        onChange={(e) => setSmsAuthToken(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        placeholder={
+                          smsProvider === 'twilio' 
+                            ? 'Votre Auth Token Twilio' 
+                            : 'Votre Application Secret OVH'
+                        }
+                      />
+                      {smsProvider === 'twilio' && (
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          Vous pouvez trouver votre Auth Token dans votre <a href="https://console.twilio.com/" target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:underline">console Twilio</a>
+                        </p>
+                      )}
+                      {smsProvider === 'ovh' && (
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          Application Secret obtenu lors de la création du token sur <a href="https://eu.api.ovh.com/createToken/" target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:underline">console OVH</a>.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {smsProvider === 'ovh' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Consumer Key OVH
+                      </label>
+                      <input
+                        type="password"
+                        value={smsConsumerKey}
+                        onChange={(e) => setSmsConsumerKey(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        placeholder="Votre Consumer Key OVH"
+                      />
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Consumer Key obtenu lors de la création du token sur <a href="https://eu.api.ovh.com/createToken/" target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:underline">console OVH</a>. C'est le troisième identifiant après Application Key et Application Secret.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Numéro expéditeur
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {smsProvider === 'smsapi' 
+                    ? 'Nom d\'expéditeur' 
+                    : smsProvider === 'ovh'
+                    ? 'Service Name OVH'
+                    : 'Numéro expéditeur'}
                 </label>
                 <input
                   type="text"
                   value={smsFrom}
                   onChange={(e) => setSmsFrom(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="+33612345678"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder={
+                    smsProvider === 'smsapi' 
+                      ? 'FixTector' 
+                      : smsProvider === 'ovh'
+                      ? 'sms-xxxxx-1'
+                      : '+33612345678'
+                  }
                 />
+                {smsProvider === 'smsapi' && (
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Nom d'expéditeur (jusqu'à 11 caractères) ou numéro de téléphone
+                  </p>
+                )}
+                {smsProvider === 'ovh' && (
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Le Service Name est le nom de votre compte SMS OVH (ex: sms-xxxxx-1). Vous le trouvez dans votre <a href="https://www.ovh.com/manager/telecom/#/sms" target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:underline">espace client OVH</a>.
+                  </p>
+                )}
+                {smsProvider === 'ovh' && (
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Expéditeur OVH (Sender) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={smsSender}
+                      onChange={(e) => setSmsSender(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="Ex: FixTector ou +33612345678"
+                    />
+                    <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                      <p className="text-xs text-yellow-800 dark:text-yellow-200 font-semibold mb-1">
+                        ⚠️ Important : L'expéditeur est obligatoire !
+                      </p>
+                      <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-2">
+                        Sans expéditeur, les SMS ne pourront pas être envoyés. Vous avez 3 options :
+                      </p>
+                      <ol className="text-xs text-yellow-700 dark:text-yellow-300 list-decimal list-inside space-y-1">
+                        <li><strong>Recommandé :</strong> Créez un nom d'expéditeur professionnel dans OVH (ex: "FixTector")</li>
+                        <li><strong>Alternative :</strong> Utilisez un numéro de téléphone vérifié (ex: +33612345678)</li>
+                        <li><strong>Si déjà créé :</strong> Utilisez votre Service Name comme expéditeur (doit être créé dans OVH)</li>
+                      </ol>
+                      <a 
+                        href={`https://www.ovh.com/manager/telecom/#/sms/${smsFrom || 'votre-service'}/senders`} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-xs text-primary-600 dark:text-primary-400 hover:underline font-semibold mt-2 inline-block"
+                      >
+                        → Créer un expéditeur dans OVH maintenant
+                      </a>
+                    </div>
+                  </div>
+                )}
+                {smsProvider === 'ovh' && (
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Expéditeur OVH (Sender) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={smsSender}
+                      onChange={(e) => setSmsSender(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="Ex: FixTector ou +33612345678"
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      <strong>Recommandé:</strong> Créez un nom d'expéditeur professionnel dans OVH (ex: "FixTector", "MonEntreprise"). 
+                      <br />
+                      <strong>Alternative:</strong> Utilisez un numéro de téléphone vérifié (les SMS partiront de ce numéro).
+                      <br />
+                      <a href={`https://www.ovh.com/manager/telecom/#/sms/${smsFrom || 'votre-service'}/senders`} target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:underline">
+                        Créer un expéditeur dans OVH →
+                      </a>
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Test SMS */}
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
+                  Tester la configuration SMS
+                </h3>
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Numéro de téléphone de test
+                    </label>
+                    <input
+                      type="tel"
+                      value={smsTestNumber}
+                      onChange={(e) => setSmsTestNumber(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="+33612345678"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      onClick={handleSmsTest}
+                      disabled={smsTestLoading || !smsEnabled}
+                      className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {smsTestLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <span>Envoi...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4" />
+                          <span>Tester SMS</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  Un SMS de test sera envoyé au numéro indiqué pour vérifier que la configuration fonctionne correctement.
+                </p>
               </div>
             </div>
           )}
@@ -825,10 +1444,10 @@ export default function SettingsForm() {
       </div>
 
       {/* Fiscalité */}
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <div className="flex items-center mb-4">
-          <Receipt className="h-5 w-5 mr-2 text-gray-400" />
-          <h2 className="text-lg font-medium text-gray-900">Fiscalité</h2>
+          <Receipt className="h-5 w-5 mr-2 text-gray-400 dark:text-gray-500" />
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Fiscalité</h2>
         </div>
         
         <div className="space-y-4">
@@ -848,7 +1467,7 @@ export default function SettingsForm() {
                 </option>
               ))}
             </select>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               {companyTypes.find(t => t.value === companyType)?.description}
             </p>
           </div>
@@ -868,7 +1487,7 @@ export default function SettingsForm() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-50"
               placeholder="20.0"
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               {companyType === 'auto-entrepreneur' 
                 ? 'Les auto-entrepreneurs sont en franchise de TVA en dessous des seuils (0%). Le taux sera automatiquement appliqué.'
                 : 'Taux de TVA par défaut utilisé pour les factures. Conforme à la législation en vigueur.'}
@@ -883,50 +1502,24 @@ export default function SettingsForm() {
           </div>
         </div>
       </div>
+        </>
+      )}
 
-      {/* Préférences */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="flex items-center mb-4">
-          <Globe className="h-5 w-5 mr-2 text-gray-400" />
-          <h2 className="text-lg font-medium text-gray-900">Préférences</h2>
-        </div>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Langue
-            </label>
-            <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white">
-              <option value="fr">Français</option>
-              <option value="en">English</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Fuseau horaire
-            </label>
-            <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white">
-              <option value="Europe/Paris">Europe/Paris (GMT+1)</option>
-              <option value="UTC">UTC</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
+      {activeTab === 'database' && (
+        <>
       {/* Base de données */}
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <div className="flex items-center mb-4">
-          <Database className="h-5 w-5 mr-2 text-gray-400" />
-          <h2 className="text-lg font-medium text-gray-900">Base de données</h2>
+          <Database className="h-5 w-5 mr-2 text-gray-400 dark:text-gray-500" />
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Base de données</h2>
         </div>
         
         <div className="space-y-4">
           <div>
-            <p className="text-sm text-gray-700 mb-2">
+            <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
               Type de base de données: <span className="font-medium">SQLite</span>
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               La base de données est stockée localement dans le fichier dev.db
             </p>
           </div>
@@ -934,26 +1527,30 @@ export default function SettingsForm() {
           <div className="flex space-x-4">
             <button
               onClick={() => window.open('/api/db/backup', '_blank')}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
             >
               Sauvegarder la base de données
             </button>
           </div>
         </div>
       </div>
+        </>
+      )}
 
+      {activeTab === 'ssl' && userRole === 'admin' && (
+        <>
       {/* SSL / HTTPS */}
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <div className="flex items-center mb-4">
-          <Lock className="h-5 w-5 mr-2 text-gray-400" />
-          <h2 className="text-lg font-medium text-gray-900">SSL / HTTPS</h2>
+          <Lock className="h-5 w-5 mr-2 text-gray-400 dark:text-gray-500" />
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">SSL / HTTPS</h2>
         </div>
         
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-900">Activer SSL/HTTPS</p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Activer SSL/HTTPS</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 {sslStatus === 'checking' && 'Vérification du statut SSL...'}
                 {sslStatus === 'active' && 'Certificat SSL actif et valide'}
                 {sslStatus === 'inactive' && 'SSL non configuré ou certificat invalide'}
@@ -1028,12 +1625,16 @@ export default function SettingsForm() {
           )}
         </div>
       </div>
+        </>
+      )}
 
+      {activeTab === 'security' && (
+        <>
       {/* Sécurité */}
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <div className="flex items-center mb-4">
-          <Shield className="h-5 w-5 mr-2 text-gray-400" />
-          <h2 className="text-lg font-medium text-gray-900">Sécurité</h2>
+          <Shield className="h-5 w-5 mr-2 text-gray-400 dark:text-gray-500" />
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Sécurité</h2>
         </div>
         
         <div className="space-y-4">
@@ -1047,7 +1648,10 @@ export default function SettingsForm() {
           </div>
         </div>
       </div>
+        </>
+      )}
 
+      {/* Messages de succès/erreur et bouton de sauvegarde */}
       {success && (
         <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
           {success}

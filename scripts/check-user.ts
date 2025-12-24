@@ -20,7 +20,7 @@ async function main() {
     console.log('Exécutez: npm run db:init')
   } else {
     console.log(`✅ ${users.length} utilisateur(s) trouvé(s):\n`)
-    users.forEach((user) => {
+    users.forEach((user: { email: string | null; name: string | null; role: string; createdAt: Date }) => {
       console.log(`  - Email: ${user.email}`)
       console.log(`    Nom: ${user.name}`)
       console.log(`    Rôle: ${user.role}`)

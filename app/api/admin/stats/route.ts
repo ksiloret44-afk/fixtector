@@ -3,6 +3,10 @@ import { getMainPrisma } from '@/lib/db-manager'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
+// Cache les stats pendant 30 secondes (pour les admins)
+export const revalidate = 30
+export const dynamic = 'force-dynamic' // Nécessaire pour l'authentification
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
@@ -11,6 +15,9 @@ export async function GET() {
     }
 
     const mainPrisma = getMainPrisma()
+    
+    // Optimisation: une seule requête avec groupBy serait mieux, mais count est déjà optimisé
+    // Utiliser Promise.all pour paralléliser les requêtes
     const [totalUsers, approvedUsers, pendingUsers, adminUsers] = await Promise.all([
       mainPrisma.user.count(),
       mainPrisma.user.count({ where: { approved: true } }),
@@ -18,12 +25,20 @@ export async function GET() {
       mainPrisma.user.count({ where: { role: 'admin' } }),
     ])
 
-    return NextResponse.json({
-      totalUsers,
-      approvedUsers,
-      pendingUsers,
-      adminUsers,
-    })
+    // Ajouter les headers de cache
+    return NextResponse.json(
+      {
+        totalUsers,
+        approvedUsers,
+        pendingUsers,
+        adminUsers,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+        },
+      }
+    )
   } catch (error) {
     console.error('Erreur:', error)
     return NextResponse.json(

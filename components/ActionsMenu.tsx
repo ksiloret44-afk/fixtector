@@ -124,7 +124,7 @@ export default function ActionsMenu({ type, id, status, repairId }: ActionsMenuP
             className="fixed inset-0 z-[99]" 
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-xl ring-1 ring-black ring-opacity-5 z-[100] border border-gray-200 overflow-hidden">
+          <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-xl ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-[100] border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="py-1">
             {/* Actions */}
             <div className="px-3 py-2 text-xs font-medium text-gray-500 uppercase">Actions</div>
@@ -148,11 +148,11 @@ export default function ActionsMenu({ type, id, status, repairId }: ActionsMenuP
               <>
                 {status === 'accepted' && (
                   <>
-                    <div className="border-t border-gray-100 my-1"></div>
-                    <div className="px-3 py-2 text-xs font-medium text-gray-500 uppercase">Créer</div>
+                    <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+                    <div className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Créer</div>
                     <button
                       onClick={handleConvert}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                     >
                       <Receipt className="h-4 w-4 mr-2" />
                       Créer la facture
@@ -161,8 +161,8 @@ export default function ActionsMenu({ type, id, status, repairId }: ActionsMenuP
                 )}
                 {status === 'pending' && (
                   <>
-                    <div className="border-t border-gray-100 my-1"></div>
-                    <div className="px-3 py-2 text-xs font-medium text-gray-500 uppercase">Marquer comme</div>
+                    <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+                    <div className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Marquer comme</div>
                     <button
                       onClick={() => {
                         fetch(`/api/quotes/${id}`, {
@@ -172,9 +172,9 @@ export default function ActionsMenu({ type, id, status, repairId }: ActionsMenuP
                         }).then(() => router.refresh())
                         setIsOpen(false)
                       }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                     >
-                      <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                      <CheckCircle className="h-4 w-4 mr-2 text-green-600 dark:text-green-400" />
                       Accepter
                     </button>
                     <button
@@ -186,9 +186,9 @@ export default function ActionsMenu({ type, id, status, repairId }: ActionsMenuP
                         }).then(() => router.refresh())
                         setIsOpen(false)
                       }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                     >
-                      <XCircle className="h-4 w-4 mr-2 text-red-600" />
+                      <XCircle className="h-4 w-4 mr-2 text-red-600 dark:text-red-400" />
                       Refuser
                     </button>
                   </>
@@ -199,14 +199,14 @@ export default function ActionsMenu({ type, id, status, repairId }: ActionsMenuP
             {/* Pour les factures */}
             {type === 'invoice' && (
               <>
-                <div className="border-t border-gray-100 my-1"></div>
-                <div className="px-3 py-2 text-xs font-medium text-gray-500 uppercase">Marquer comme</div>
+                <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+                <div className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Marquer comme</div>
                 {status !== 'paid' && (
                   <button
                     onClick={handleMarkAsPaid}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                   >
-                    <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                    <CheckCircle className="h-4 w-4 mr-2 text-green-600 dark:text-green-400" />
                     Marquer comme payée
                   </button>
                 )}
@@ -220,9 +220,9 @@ export default function ActionsMenu({ type, id, status, repairId }: ActionsMenuP
                       })
                       router.refresh()
                     }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                   >
-                    <XCircle className="h-4 w-4 mr-2 text-red-600" />
+                    <XCircle className="h-4 w-4 mr-2 text-red-600 dark:text-red-400" />
                     Marquer comme impayée
                   </button>
                 )}
@@ -230,15 +230,15 @@ export default function ActionsMenu({ type, id, status, repairId }: ActionsMenuP
             )}
 
             {/* Dupliquer */}
-            <div className="border-t border-gray-100 my-1"></div>
-            <div className="px-3 py-2 text-xs font-medium text-gray-500 uppercase">Dupliquer</div>
+            <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+            <div className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Dupliquer</div>
             {type === 'quote' && (
               <button
                 onClick={() => {
                   router.push(`/quotes/new?duplicate=${id}`)
                   setIsOpen(false)
                 }}
-                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
               >
                 <Copy className="h-4 w-4 mr-2" />
                 Dupliquer en devis
@@ -251,7 +251,7 @@ export default function ActionsMenu({ type, id, status, repairId }: ActionsMenuP
                     router.push(`/quotes/new?duplicateInvoice=${id}`)
                     setIsOpen(false)
                   }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                 >
                   <Copy className="h-4 w-4 mr-2" />
                   Dupliquer en devis
@@ -261,7 +261,7 @@ export default function ActionsMenu({ type, id, status, repairId }: ActionsMenuP
                     router.push(`/invoices/new?duplicate=${id}`)
                     setIsOpen(false)
                   }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                 >
                   <Copy className="h-4 w-4 mr-2" />
                   Dupliquer en facture
@@ -270,10 +270,10 @@ export default function ActionsMenu({ type, id, status, repairId }: ActionsMenuP
             )}
 
             {/* Supprimer */}
-            <div className="border-t border-gray-100 my-1"></div>
+            <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
             <button
               onClick={handleDelete}
-              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
+              className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Supprimer

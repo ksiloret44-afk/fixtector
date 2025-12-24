@@ -26,17 +26,17 @@ export default async function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation />
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0 space-y-6">
           <AdminDashboard />
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Gestion des abonnements</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Gestion des abonnements</h2>
             <SubscriptionsManagement />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Gestion des avis entreprises</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Gestion des avis entreprises</h2>
             <CompanyReviewsManagement />
           </div>
         </div>

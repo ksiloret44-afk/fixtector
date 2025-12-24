@@ -33,6 +33,9 @@ export default function RepairDetails({ repair, isClient = false }: RepairDetail
   const [requestingReview, setRequestingReview] = useState(false)
   const [reviewUrl, setReviewUrl] = useState<string | null>(null)
 
+  // Le statut est géré manuellement dans updateStatus
+  // Pas de synchronisation automatique avec les props pour éviter les conflits
+
   // Récupérer le taux de TVA depuis les paramètres
   useEffect(() => {
     fetch('/api/settings')
@@ -55,17 +58,40 @@ export default function RepairDetails({ repair, isClient = false }: RepairDetail
       })
 
       if (response.ok) {
-        setStatus(newStatus)
+        const data = await response.json()
+        console.log('[RepairDetails] Réponse API:', data)
         
-        // Si on termine la réparation, créer/régénérer un devis
-        if (newStatus === 'completed') {
-          await createOrRegenerateQuote()
+        // Utiliser le statut de la réponse API pour garantir la cohérence
+        const updatedStatus = data.repair?.status || newStatus
+        console.log('[RepairDetails] Statut mis à jour depuis l\'API:', updatedStatus)
+        
+        // Mettre à jour immédiatement le statut local pour un feedback instantané
+        setStatus(updatedStatus)
+        
+        // Si un devis a été créé, rediriger vers celui-ci
+        if (data.createdQuoteId) {
+          console.log('[RepairDetails] Devis créé, redirection vers:', data.createdQuoteId)
+          // Attendre un peu pour que la base de données soit complètement mise à jour
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          // Rediriger vers le devis créé
+          window.location.href = `/quotes/${data.createdQuoteId}`
+        } else {
+          // Attendre suffisamment longtemps pour que la base de données soit mise à jour
+          // et que Next.js invalide complètement son cache
+          await new Promise(resolve => setTimeout(resolve, 1500))
+          
+          // Recharger complètement la page pour garantir que les données sont à jour
+          // Cela évite les problèmes de cache et de synchronisation avec les props
+          window.location.reload()
         }
-        
-        router.refresh()
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('[RepairDetails] Erreur API:', response.status, errorData)
+        alert(`Erreur lors de la mise à jour: ${errorData.error || 'Erreur inconnue'}`)
       }
-    } catch (err) {
-      console.error('Erreur:', err)
+    } catch (err: any) {
+      console.error('[RepairDetails] Erreur:', err)
+      alert(`Erreur: ${err.message || 'Erreur inconnue'}`)
     } finally {
       setLoading(false)
     }
@@ -104,7 +130,7 @@ export default function RepairDetails({ repair, isClient = false }: RepairDetail
     }
   }
 
-  const createOrRegenerateQuote = async () => {
+  const createOrRegenerateQuote = async (shouldRedirect: boolean = true) => {
     try {
       // Vérifier si un devis existe déjà
       const existingQuote = repair.quote
@@ -147,16 +173,26 @@ export default function RepairDetails({ repair, isClient = false }: RepairDetail
 
       if (quoteResponse.ok) {
         const quoteData = await quoteResponse.json()
-        // Rediriger vers le nouveau devis
-        router.push(`/quotes/${quoteData.quote.id}`)
+        console.log('[RepairDetails] Devis créé avec succès:', quoteData.quote.id)
+        // Rediriger vers le nouveau devis seulement si demandé
+        if (shouldRedirect) {
+          router.push(`/quotes/${quoteData.quote.id}`)
+        }
+        return quoteData.quote
       } else {
         const errorData = await quoteResponse.json()
         console.error('Erreur lors de la création du devis:', errorData)
-        alert('Erreur lors de la création du devis: ' + (errorData.error || 'Une erreur est survenue'))
+        if (shouldRedirect) {
+          alert('Erreur lors de la création du devis: ' + (errorData.error || 'Une erreur est survenue'))
+        }
+        throw new Error(errorData.error || 'Erreur lors de la création du devis')
       }
     } catch (err) {
       console.error('Erreur lors de la création du devis:', err)
-      alert('Erreur lors de la création du devis')
+      if (shouldRedirect) {
+        alert('Erreur lors de la création du devis')
+      }
+      throw err
     }
   }
 

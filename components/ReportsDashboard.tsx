@@ -96,17 +96,17 @@ export default function ReportsDashboard() {
 
   if (loading) {
     return (
-      <div className="bg-white shadow rounded-lg p-12 text-center">
-        <p className="text-gray-500">Chargement des rapports...</p>
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-12 text-center">
+        <p className="text-gray-500 dark:text-gray-400">Chargement des rapports...</p>
       </div>
     )
   }
 
   if (!data || !data.revenue || !data.repairs || !data.customers) {
     return (
-      <div className="bg-white shadow rounded-lg p-12 text-center">
-        <p className="text-gray-500">Aucune donnée disponible</p>
-        <p className="text-sm text-gray-400 mt-2">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-12 text-center">
+        <p className="text-gray-500 dark:text-gray-400">Aucune donnée disponible</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
           Les données seront disponibles une fois que vous aurez créé des réparations et factures.
         </p>
       </div>
@@ -116,7 +116,7 @@ export default function ReportsDashboard() {
   return (
     <div className="space-y-6">
       {/* Période et export */}
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <div className="flex items-center justify-between">
           <div className="flex space-x-3">
             <button
@@ -153,14 +153,14 @@ export default function ReportsDashboard() {
           <div className="flex space-x-3">
             <button
               onClick={() => handleExport('csv')}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
             >
               <Download className="h-4 w-4 mr-2" />
               Export CSV
             </button>
             <button
               onClick={() => handleExport('excel')}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
             >
               <Download className="h-4 w-4 mr-2" />
               Export Excel
@@ -171,7 +171,7 @@ export default function ReportsDashboard() {
 
       {/* Statistiques principales */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0 bg-purple-100 rounded-md p-3">
@@ -179,8 +179,8 @@ export default function ReportsDashboard() {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Chiffre d'affaires</dt>
-                  <dd className="text-lg font-semibold text-gray-900">
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Chiffre d'affaires</dt>
+                  <dd className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                     {data.revenue.total.toFixed(2)} €
                   </dd>
                   {data.revenue.growth !== 0 && (
@@ -194,7 +194,7 @@ export default function ReportsDashboard() {
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0 bg-blue-100 rounded-md p-3">
@@ -202,9 +202,9 @@ export default function ReportsDashboard() {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Réparations</dt>
-                  <dd className="text-lg font-semibold text-gray-900">{data.repairs.total}</dd>
-                  <dd className="text-xs text-gray-500">
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Réparations</dt>
+                  <dd className="text-lg font-semibold text-gray-900 dark:text-gray-100">{data.repairs.total}</dd>
+                  <dd className="text-xs text-gray-500 dark:text-gray-400">
                     {data.repairs.completed} terminées
                   </dd>
                 </dl>
@@ -213,7 +213,7 @@ export default function ReportsDashboard() {
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0 bg-green-100 rounded-md p-3">
@@ -221,9 +221,9 @@ export default function ReportsDashboard() {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Clients</dt>
-                  <dd className="text-lg font-semibold text-gray-900">{data.customers.total}</dd>
-                  <dd className="text-xs text-gray-500">
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Clients</dt>
+                  <dd className="text-lg font-semibold text-gray-900 dark:text-gray-100">{data.customers.total}</dd>
+                  <dd className="text-xs text-gray-500 dark:text-gray-400">
                     {data.customers.newThisMonth} nouveaux ce mois
                   </dd>
                 </dl>
@@ -232,7 +232,7 @@ export default function ReportsDashboard() {
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0 bg-yellow-100 rounded-md p-3">
@@ -240,13 +240,13 @@ export default function ReportsDashboard() {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Taux de complétion</dt>
-                  <dd className="text-lg font-semibold text-gray-900">
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Taux de complétion</dt>
+                  <dd className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                     {data.repairs.total > 0
                       ? ((data.repairs.completed / data.repairs.total) * 100).toFixed(1)
                       : 0}%
                   </dd>
-                  <dd className="text-xs text-gray-500">
+                  <dd className="text-xs text-gray-500 dark:text-gray-400">
                     {data.repairs.completed} / {data.repairs.total}
                   </dd>
                 </dl>
@@ -259,8 +259,8 @@ export default function ReportsDashboard() {
       {/* Graphiques */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenus quotidiens */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Revenus quotidiens</h3>
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Revenus quotidiens</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={data.dailyRevenue}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -274,8 +274,8 @@ export default function ReportsDashboard() {
         </div>
 
         {/* Réparations par statut */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Réparations par statut</h3>
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Réparations par statut</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -298,8 +298,8 @@ export default function ReportsDashboard() {
         </div>
 
         {/* Revenus mensuels */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Revenus mensuels</h3>
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Revenus mensuels</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={data.monthlyRevenue}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -313,8 +313,8 @@ export default function ReportsDashboard() {
         </div>
 
         {/* Top clients */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Top 5 clients</h3>
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Top 5 clients</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={data.topCustomers} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />

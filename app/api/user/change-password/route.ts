@@ -61,17 +61,34 @@ export async function POST(request: Request) {
     }
 
     // Hasher le nouveau mot de passe
-    const hashedPassword = await bcrypt.hash(newPassword, 10)
+    let hashedPassword: string
+    try {
+      hashedPassword = await bcrypt.hash(newPassword, 10)
+    } catch (error) {
+      console.error('Erreur lors du hashage du mot de passe:', error)
+      return NextResponse.json(
+        { error: 'Erreur lors du hashage du mot de passe' },
+        { status: 500 }
+      )
+    }
 
     // Mettre à jour l'utilisateur
-    await mainPrisma.user.update({
-      where: { id: userId },
-      data: {
-        email,
-        password: hashedPassword,
-        mustChangePassword: false, // Plus besoin de changer le mot de passe
-      },
-    })
+    try {
+      await mainPrisma.user.update({
+        where: { id: userId },
+        data: {
+          email,
+          password: hashedPassword,
+          mustChangePassword: false, // Plus besoin de changer le mot de passe
+        },
+      })
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour:', error)
+      return NextResponse.json(
+        { error: 'Erreur lors de la mise à jour du mot de passe' },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({
       message: 'Email et mot de passe mis à jour avec succès',

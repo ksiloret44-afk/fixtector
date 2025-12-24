@@ -8,6 +8,9 @@ import TrialWelcome from '@/components/TrialWelcome'
 import UpdateNewsModal from '@/components/UpdateNewsModal'
 import HelpRequestWidget from '@/components/HelpRequestWidget'
 
+// Optimisation: Permettre le cache avec revalidation pour les données non sensibles
+export const revalidate = 30
+
 export default async function Home() {
   const session = await getServerSession(authOptions)
 

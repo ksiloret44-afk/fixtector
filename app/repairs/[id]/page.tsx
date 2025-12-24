@@ -6,6 +6,9 @@ import Navigation from '@/components/Navigation'
 import RepairDetails from '@/components/RepairDetails'
 import { notFound } from 'next/navigation'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function RepairDetailPage({
   params,
 }: {
@@ -54,7 +57,7 @@ export default async function RepairDetailPage({
   const repairWithUser = repair ? { ...repair, user: userInfo } : null
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation />
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">

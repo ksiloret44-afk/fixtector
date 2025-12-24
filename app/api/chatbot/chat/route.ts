@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { message, companyId, isGeneral = true } = body
+    const { message, companyId, visitorEmail, isGeneral = true } = body
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -28,6 +28,24 @@ export async function POST(request: Request) {
     const userId = (session.user as any).id
     const prisma = getMainPrisma()
 
+    // Préparer les métadonnées si c'est une réponse à un visiteur
+    let metadata = null
+    if (visitorEmail) {
+      // Récupérer les infos du visiteur depuis un de ses messages précédents
+      const visitorMessage = await prisma.chatbotMessage.findFirst({
+        where: {
+          isGeneral: true,
+          metadata: {
+            contains: `"email":"${visitorEmail}"`
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      })
+      if (visitorMessage?.metadata) {
+        metadata = visitorMessage.metadata // Conserver les mêmes métadonnées pour lier la conversation
+      }
+    }
+
     // Sauvegarder le message de l'utilisateur
     await prisma.chatbotMessage.create({
       data: {
@@ -35,7 +53,8 @@ export async function POST(request: Request) {
         role: 'user',
         content: message,
         companyId: companyId || null,
-        isGeneral: isGeneral === true || companyId === null,
+        isGeneral: isGeneral === true || visitorEmail !== undefined,
+        metadata: metadata,
       },
     })
 
@@ -49,7 +68,8 @@ export async function POST(request: Request) {
         role: 'assistant',
         content: response,
         companyId: companyId || null,
-        isGeneral: isGeneral === true || companyId === null,
+        isGeneral: isGeneral === true || visitorEmail !== undefined,
+        metadata: metadata,
       },
     })
 

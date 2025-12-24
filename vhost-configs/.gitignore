@@ -1,0 +1,16 @@
+# Ignorer tous les fichiers de configuration générés
+*.conf
+*.sh
+!README.md
+
+
+
+
+
+
+
+
+
+
+
+

@@ -47,6 +47,7 @@ model User {
   approvedBy String?
   approvedAt DateTime?
   mustChangePassword Boolean @default(false) // Force le changement de mot de passe à la première connexion
+  theme String? @default("light") // Thème de l'interface: "light" ou "dark"
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
@@ -56,6 +57,7 @@ model User {
   trial         Trial?
   chatbotMessages ChatbotMessage[]
   companyReviews CompanyReview[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model Subscription {
@@ -174,5 +176,20 @@ model CompanyReview {
   @@index([companyId])
   @@index([userId])
   @@index([isPublic, isApproved])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@index([used])
 }
 

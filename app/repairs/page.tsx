@@ -38,10 +38,28 @@ export default async function RepairsPage({
     redirect('/')
   }
 
+  // Optimisation: Limiter et utiliser select spécifique
   const repairs = await companyPrisma.repair.findMany({
     where,
-    include: {
-      customer: true,
+    take: 100, // Limiter à 100 réparations (ajouter pagination si nécessaire)
+    select: {
+      id: true,
+      ticketNumber: true,
+      deviceType: true,
+      brand: true,
+      model: true,
+      status: true,
+      estimatedCost: true,
+      finalCost: true,
+      createdAt: true,
+      customer: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+        },
+      },
     },
     orderBy: { createdAt: 'desc' },
   })
@@ -55,14 +73,14 @@ export default async function RepairsPage({
   ])
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation />
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Réparations</h1>
-              <p className="mt-2 text-gray-600">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Réparations</h1>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
                 Gérez toutes vos réparations en un seul endroit
               </p>
             </div>
@@ -82,7 +100,7 @@ export default async function RepairsPage({
               className={`px-4 py-2 rounded-md text-sm font-medium ${
                 !searchParams.status
                   ? 'bg-primary-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               Tous ({repairs.length})
@@ -92,7 +110,7 @@ export default async function RepairsPage({
               className={`px-4 py-2 rounded-md text-sm font-medium ${
                 searchParams.status === 'pending'
                   ? 'bg-primary-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               En attente ({statusCounts[0]})
@@ -102,7 +120,7 @@ export default async function RepairsPage({
               className={`px-4 py-2 rounded-md text-sm font-medium ${
                 searchParams.status === 'in_progress'
                   ? 'bg-primary-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               En cours ({statusCounts[1]})
@@ -112,7 +130,7 @@ export default async function RepairsPage({
               className={`px-4 py-2 rounded-md text-sm font-medium ${
                 searchParams.status === 'waiting_parts'
                   ? 'bg-primary-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               En attente de pièces ({statusCounts[2]})
@@ -122,7 +140,7 @@ export default async function RepairsPage({
               className={`px-4 py-2 rounded-md text-sm font-medium ${
                 searchParams.status === 'completed'
                   ? 'bg-primary-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               Terminées ({statusCounts[3]})

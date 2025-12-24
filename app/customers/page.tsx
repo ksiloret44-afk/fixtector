@@ -19,8 +19,16 @@ export default async function CustomersPage() {
     redirect('/')
   }
 
+  // Optimisation: Limiter et utiliser select spécifique
   const customers = await companyPrisma.customer.findMany({
-    include: {
+    take: 100, // Limiter à 100 clients (ajouter pagination si nécessaire)
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      createdAt: true,
       _count: {
         select: { repairs: true },
       },
@@ -29,14 +37,14 @@ export default async function CustomersPage() {
   })
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation />
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Clients</h1>
-              <p className="mt-2 text-gray-600">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Clients</h1>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
                 Gérez votre base de clients
               </p>
             </div>
@@ -50,21 +58,21 @@ export default async function CustomersPage() {
           </div>
 
           {customers.length === 0 ? (
-            <div className="bg-white shadow rounded-lg p-12 text-center">
+            <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-12 text-center">
               <Users className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">Aucun client</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Aucun client</h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Commencez par créer votre premier client.
               </p>
             </div>
           ) : (
-            <div className="bg-white shadow overflow-hidden sm:rounded-md">
-              <ul className="divide-y divide-gray-200">
+            <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
+              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                 {customers.map((customer) => (
                   <li key={customer.id}>
                     <Link
                       href={`/customers/${customer.id}`}
-                      className="block hover:bg-gray-50 transition-colors"
+                      className="block hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                       <div className="px-4 py-4 sm:px-6">
                         <div className="flex items-center justify-between">
@@ -77,10 +85,10 @@ export default async function CustomersPage() {
                               </div>
                             </div>
                             <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">
+                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                 {customer.firstName} {customer.lastName}
                               </div>
-                              <div className="mt-2 flex items-center text-sm text-gray-500">
+                              <div className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400">
                                 <Phone className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
                                 <span>{customer.phone}</span>
                                 {customer.email && (
@@ -94,7 +102,7 @@ export default async function CustomersPage() {
                             </div>
                           </div>
                           <div className="flex items-center">
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
                               {customer._count.repairs} réparation{customer._count.repairs > 1 ? 's' : ''}
                             </span>
                           </div>

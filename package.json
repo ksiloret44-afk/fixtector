@@ -1,9 +1,10 @@
 {
   "name": "fixtector-test",
-  "version": "1.4.0",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3001",
+    "dev:build": "powershell -ExecutionPolicy Bypass -File ./scripts/start-with-build.ps1",
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "next lint",
@@ -11,7 +12,11 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:init": "tsx scripts/init-db.ts",
-    "setup": "npm install && npm run db:generate && npm run db:push && npm run db:init"
+    "setup": "npm install && npm run db:generate && npm run db:push && npm run db:init",
+    "clean:cache": "tsx scripts/clean-cache.ts",
+    "clean:cache:all": "tsx scripts/clean-cache.ts --force",
+    "security:check": "npx tsx scripts/security-check.ts",
+    "security:fix": "npm audit fix"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",
@@ -20,35 +25,38 @@
     "@radix-ui/react-select": "^2.0.0",
     "@radix-ui/react-tabs": "^1.0.4",
     "bcryptjs": "^2.4.3",
+    "critters": "^0.0.23",
     "date-fns": "^3.0.6",
-    "jspdf": "^2.5.1",
-    "jspdf-autotable": "^3.8.3",
+    "jspdf": "^3.0.4",
+    "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.303.0",
     "next": "^14.2.34",
     "next-auth": "^4.24.5",
     "nodemailer": "^7.0.11",
+    "ovh": "^2.0.0",
     "react": "^18.2.0",
     "react-big-calendar": "^1.19.4",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.49.2",
     "recharts": "^3.6.0",
+    "twilio": "^5.3.5",
     "xmlbuilder2": "^4.0.3",
     "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
-    "@types/node": "^20.10.6",
+    "@types/node": "20.19.27",
+    "@types/nodemailer": "^7.0.4",
     "@types/react": "^18.2.46",
     "@types/react-big-calendar": "^1.16.3",
     "@types/react-dom": "^18.2.18",
-    "@types/nodemailer": "^7.0.4",
-    "autoprefixer": "^10.4.16",
+    "autoprefixer": "^10.4.23",
     "eslint": "^8.56.0",
     "eslint-config-next": "14.0.4",
-    "postcss": "^8.4.32",
+    "postcss": "^8.5.6",
     "prisma": "^5.7.1",
-    "tailwindcss": "^3.4.0",
+    "tailwindcss": "^3.4.19",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.3"
+    "typescript": "5.9.3"
   }
 }

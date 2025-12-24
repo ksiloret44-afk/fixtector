@@ -68,8 +68,8 @@ export default function UpdatesChecker() {
     } catch (error) {
       console.error('Erreur lors de la vérification:', error)
       setUpdateInfo({
-        currentVersion: '1.1.3',
-        latestVersion: '1.1.3',
+        currentVersion: '2.0.0',
+        latestVersion: '2.0.0',
         updateAvailable: false,
         error: 'Impossible de vérifier les mises à jour',
       })
@@ -95,10 +95,10 @@ export default function UpdatesChecker() {
 
   if (loading) {
     return (
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <div className="flex items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-primary-600" />
-          <span className="ml-2 text-gray-600">Vérification des mises à jour...</span>
+          <span className="ml-2 text-gray-600 dark:text-gray-400">Vérification des mises à jour...</span>
         </div>
       </div>
     )
@@ -131,13 +131,13 @@ export default function UpdatesChecker() {
       )}
 
       {/* En-tête avec bouton de rafraîchissement */}
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-medium text-gray-900">État des mises à jour</h2>
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">État des mises à jour</h2>
           <button
             onClick={checkForUpdates}
             disabled={checking}
-            className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${checking ? 'animate-spin' : ''}`} />
             {checking ? 'Vérification...' : 'Vérifier maintenant'}
@@ -147,19 +147,19 @@ export default function UpdatesChecker() {
         {updateInfo && (
           <div className="space-y-4">
             {/* Version actuelle */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div>
-                <p className="text-sm font-medium text-gray-700">Version actuelle</p>
-                <p className="text-2xl font-bold text-gray-900">{updateInfo.currentVersion}</p>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Version actuelle</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{updateInfo.currentVersion}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
 
             {/* Dernière version disponible */}
-            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
               <div>
-                <p className="text-sm font-medium text-blue-700">Dernière version disponible</p>
-                <p className="text-2xl font-bold text-blue-900">{updateInfo.latestVersion}</p>
+                <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Dernière version disponible</p>
+                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{updateInfo.latestVersion}</p>
               </div>
               {updateInfo.updateAvailable ? (
                 <AlertCircle className="h-8 w-8 text-orange-500" />
@@ -214,12 +214,12 @@ export default function UpdatesChecker() {
             {/* Notes de version */}
             {updateInfo.releaseNotes && (
               <div className="mt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-3">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">
                   Notes de version {updateInfo.latestVersion}
                 </h3>
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
                   <div
-                    className="prose prose-sm max-w-none text-gray-700"
+                    className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300"
                     dangerouslySetInnerHTML={{
                       __html: updateInfo.releaseNotes
                         .replace(/\n/g, '<br />')
@@ -230,7 +230,7 @@ export default function UpdatesChecker() {
                   />
                 </div>
                 {updateInfo.publishedAt && (
-                  <p className="mt-2 text-xs text-gray-500">
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                     Publié le {formatDate(updateInfo.publishedAt)}
                   </p>
                 )}
@@ -254,29 +254,42 @@ export default function UpdatesChecker() {
       </div>
 
       {/* Instructions de mise à jour */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Comment mettre à jour ?</h3>
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Comment mettre à jour ?</h3>
         <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm font-medium text-blue-900 mb-2">Mise à jour automatique (recommandé)</p>
-            <p className="text-sm text-blue-700 mb-3">
+          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">Mise à jour automatique (recommandé)</p>
+            <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
               Si vous avez installé via le script d'installation, utilisez le script de mise à jour :
             </p>
-            <code className="block bg-blue-100 px-4 py-2 rounded text-sm text-blue-900">
+            <code className="block bg-blue-100 dark:bg-blue-900/50 px-4 py-2 rounded text-sm text-blue-900 dark:text-blue-200">
               sudo /home/fixtector/fixtector/update.sh
             </code>
           </div>
 
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <p className="text-sm font-medium text-gray-900 mb-2">Mise à jour manuelle</p>
-            <ol className="text-sm text-gray-700 list-decimal list-inside space-y-2">
+          <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Mise à jour manuelle</p>
+            <ol className="text-sm text-gray-700 dark:text-gray-300 list-decimal list-inside space-y-2">
               <li>Téléchargez la dernière release depuis GitHub</li>
-              <li>Arrêtez le serveur : <code className="bg-gray-200 px-1 rounded">pm2 stop fixtector</code></li>
-              <li>Remplacez les fichiers (sauf <code className="bg-gray-200 px-1 rounded">.env.local</code> et les bases de données)</li>
-              <li>Installez les dépendances : <code className="bg-gray-200 px-1 rounded">npm install</code></li>
-              <li>Rebuild : <code className="bg-gray-200 px-1 rounded">npm run build</code></li>
-              <li>Redémarrez : <code className="bg-gray-200 px-1 rounded">pm2 restart fixtector</code></li>
+              <li>Arrêtez le serveur : <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded text-gray-900 dark:text-gray-100">pm2 stop fixtector</code></li>
+              <li>
+                Remplacez les fichiers (sauf <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded text-gray-900 dark:text-gray-100">.env.local</code> et les bases de données) :
+                <ul className="list-disc list-inside ml-4 mt-1 space-y-1 text-xs">
+                  <li><strong>Base de données principale :</strong> <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded">prisma/main.db</code></li>
+                  <li><strong>Bases de données des entreprises :</strong> <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded">prisma/companies/*.db</code> (tous les fichiers .db dans ce dossier)</li>
+                </ul>
+              </li>
+              <li>Installez les dépendances : <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded text-gray-900 dark:text-gray-100">npm install</code></li>
+              <li>Rebuild : <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded text-gray-900 dark:text-gray-100">npm run build</code></li>
+              <li>Redémarrez : <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded text-gray-900 dark:text-gray-100">pm2 restart fixtector</code></li>
             </ol>
+            <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded text-xs">
+              <p className="text-yellow-800 dark:text-yellow-200 font-medium mb-1">⚠️ Important :</p>
+              <p className="text-yellow-700 dark:text-yellow-300">
+                Ne supprimez jamais les fichiers <code className="bg-yellow-100 dark:bg-yellow-900/50 px-1 rounded">prisma/main.db</code> et <code className="bg-yellow-100 dark:bg-yellow-900/50 px-1 rounded">prisma/companies/*.db</code> car ils contiennent toutes vos données. 
+                En cas de doute, faites une sauvegarde avant la mise à jour.
+              </p>
+            </div>
           </div>
         </div>
       </div>

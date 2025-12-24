@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { CheckCircle, Clock, Smartphone, Users, Wrench, FileText, BarChart3, Calendar, Shield, Settings, Download, Zap, Mail, MessageSquare, Star } from 'lucide-react'
+import LandingChatbot from '@/components/LandingChatbot'
 
 function TestimonialsSection() {
   // Les avis seront chargés côté client pour éviter les problèmes de connexion DB
@@ -438,6 +439,9 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* Chatbot widget pour la page d'accueil */}
+      <LandingChatbot />
     </div>
   )
 }

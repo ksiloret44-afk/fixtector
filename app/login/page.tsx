@@ -13,6 +13,7 @@ function LoginForm() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [pendingMessage, setPendingMessage] = useState(searchParams?.get('pending') === 'true')
+  const [passwordResetSuccess, setPasswordResetSuccess] = useState(searchParams?.get('passwordReset') === 'success')
 
   // Vérifier si l'utilisateur est déjà connecté
   useEffect(() => {
@@ -76,7 +77,9 @@ function LoginForm() {
         }
         setLoading(false)
       } else if (result?.ok) {
-        // Connexion réussie, rediriger
+        // Connexion réussie, recharger la session pour obtenir le thème
+        await getSession()
+        // Rediriger
         router.push('/')
         router.refresh()
       }
@@ -103,6 +106,12 @@ function LoginForm() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {passwordResetSuccess && (
+            <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded">
+              <p className="font-medium">Mot de passe réinitialisé avec succès !</p>
+              <p className="text-sm mt-1">Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.</p>
+            </div>
+          )}
           {pendingMessage && (
             <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded">
               <p className="font-medium">Compte en attente d'approbation</p>
@@ -154,10 +163,17 @@ function LoginForm() {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-gray-600">
-          <Link href="/register" className="text-primary-600 hover:text-primary-700 font-medium">
-            Commencer l'essai gratuit
-          </Link>
+        <div className="mt-6 space-y-3 text-center text-sm text-gray-600">
+          <div>
+            <Link href="/forgot-password" className="text-primary-600 hover:text-primary-700 font-medium">
+              Mot de passe oublié ?
+            </Link>
+          </div>
+          <div>
+            <Link href="/register" className="text-primary-600 hover:text-primary-700 font-medium">
+              Commencer l'essai gratuit
+            </Link>
+          </div>
         </div>
       </div>
     </div>

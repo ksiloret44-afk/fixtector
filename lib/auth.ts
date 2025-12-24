@@ -32,7 +32,18 @@ export const authOptions: NextAuthOptions = {
         try {
           const mainPrisma = getMainPrisma()
           const user = await mainPrisma.user.findUnique({
-            where: { email: credentials.email }
+            where: { email: credentials.email },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              password: true,
+              role: true,
+              mustChangePassword: true,
+              theme: true,
+              approved: true,
+              suspended: true,
+            }
           })
 
           if (!user) {
@@ -68,6 +79,7 @@ export const authOptions: NextAuthOptions = {
             name: user.name,
             role: user.role,
             mustChangePassword: user.mustChangePassword,
+            theme: user.theme || 'light',
           }
         } catch (error) {
           console.error('Auth error:', error)
@@ -95,22 +107,43 @@ export const authOptions: NextAuthOptions = {
         token.name = user.name
         token.role = (user as any).role
         token.mustChangePassword = (user as any).mustChangePassword || false
+        token.theme = (user as any).theme || 'light'
+      } else {
+        // Rafraîchir le thème depuis la base de données si le token existe déjà
+        if (token.id) {
+          try {
+            const mainPrisma = getMainPrisma()
+            const user = await mainPrisma.user.findUnique({
+              where: { id: token.id as string },
+              select: { theme: true },
+            })
+            if (user?.theme) {
+              token.theme = user.theme
+            }
+          } catch (error) {
+            console.error('Erreur lors de la récupération du thème:', error)
+          }
+        }
       }
-      console.log('JWT callback - Token:', { id: token.id, email: token.email })
+      console.log('JWT callback - Token:', { id: token.id, email: token.email, theme: token.theme })
       return token
     },
     async session({ session, token }) {
-      console.log('Session callback - Token:', { id: token.id, email: token.email })
+      console.log('Session callback - Token:', { id: token.id, email: token.email, theme: token.theme })
       if (session.user) {
         (session.user as any).id = token.id as string
         (session.user as any).role = token.role as string
-        (session.user as any).mustChangePassword = token.mustChangePassword as boolean || false
+        const mustChangePwd = token.mustChangePassword as boolean | undefined
+        (session.user as any).mustChangePassword = mustChangePwd !== undefined ? mustChangePwd : false
+        const theme = token.theme as string | undefined
+        (session.user as any).theme = theme || 'light'
         session.user.email = token.email as string
         session.user.name = token.name as string
       }
       console.log('Session callback - Session:', { 
         hasUser: !!session.user, 
-        userEmail: session.user?.email 
+        userEmail: session.user?.email,
+        theme: (session.user as any)?.theme
       })
       return session
     },

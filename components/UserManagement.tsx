@@ -245,17 +245,18 @@ export default function UserManagement() {
   })
 
   return (
-      <div className="bg-white shadow rounded-lg" style={{ overflow: 'visible' }}>
+    <>
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg" style={{ overflow: 'visible' }}>
         <div className="px-4 py-5 sm:p-6" style={{ overflow: 'visible' }}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-medium text-gray-900">Gestion des utilisateurs</h2>
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Gestion des utilisateurs</h2>
           <div className="flex space-x-2">
             <button
               onClick={() => setFilter('all')}
               className={`px-3 py-1 rounded-md text-sm font-medium ${
                 filter === 'all'
                   ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
               Tous
@@ -265,7 +266,7 @@ export default function UserManagement() {
               className={`px-3 py-1 rounded-md text-sm font-medium ${
                 filter === 'pending'
                   ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
               En attente
@@ -275,7 +276,7 @@ export default function UserManagement() {
               className={`px-3 py-1 rounded-md text-sm font-medium ${
                 filter === 'approved'
                   ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
               Approuvés
@@ -285,36 +286,36 @@ export default function UserManagement() {
 
         {loading ? (
           <div className="text-center py-8">
-            <p className="text-gray-500">Chargement...</p>
+            <p className="text-gray-500 dark:text-gray-400">Chargement...</p>
           </div>
         ) : filteredUsers.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-gray-500">Aucun utilisateur trouvé</p>
+            <p className="text-gray-500 dark:text-gray-400">Aucun utilisateur trouvé</p>
           </div>
         ) : (
           <div className="overflow-x-auto" style={{ overflowY: 'visible', position: 'relative' }}>
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Utilisateur</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rôle</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Utilisateur</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Rôle</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Statut</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredUsers.map((user) => (
                   <tr key={user.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                      <div className="text-sm text-gray-500">{user.email}</div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.name}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{user.email}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <select
                         value={user.role}
                         onChange={(e) => handleChangeRole(user.id, e.target.value)}
-                        className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        className="text-sm border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       >
                         <option value="user">Utilisateur</option>
                         <option value="admin">Administrateur</option>
@@ -341,7 +342,7 @@ export default function UserManagement() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {format(new Date(user.createdAt), 'dd MMM yyyy', { locale: fr })}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" style={{ position: 'relative' }}>
@@ -387,18 +388,18 @@ export default function UserManagement() {
       {/* Modal pour changer le mot de passe */}
       {showPasswordModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="relative top-20 mx-auto p-5 border border-gray-300 dark:border-gray-600 w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
             <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Changer le mot de passe</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Changer le mot de passe</h3>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Nouveau mot de passe
                 </label>
                 <input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder="Minimum 6 caractères"
                   minLength={6}
                 />
@@ -409,7 +410,7 @@ export default function UserManagement() {
                     setShowPasswordModal(null)
                     setNewPassword('')
                   }}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
                 >
                   Annuler
                 </button>
@@ -428,30 +429,30 @@ export default function UserManagement() {
       {/* Modal pour modifier les informations */}
       {showEditModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="relative top-20 mx-auto p-5 border border-gray-300 dark:border-gray-600 w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
             <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Modifier les informations</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Modifier les informations</h3>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Nom complet
                 </label>
                 <input
                   type="text"
                   value={editData.name}
                   onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder="Nom complet"
                 />
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Email
                 </label>
                 <input
                   type="email"
                   value={editData.email}
                   onChange={(e) => setEditData({ ...editData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder="email@example.com"
                 />
               </div>
@@ -461,7 +462,7 @@ export default function UserManagement() {
                     setShowEditModal(null)
                     setEditData({ name: '', email: '' })
                   }}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
                 >
                   Annuler
                 </button>
@@ -480,24 +481,24 @@ export default function UserManagement() {
       {/* Modal pour voir les détails */}
       {showDetailsModal && selectedUser && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="relative top-20 mx-auto p-5 border border-gray-300 dark:border-gray-600 w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
             <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Détails du compte</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Détails du compte</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Nom</label>
-                  <p className="text-sm text-gray-900">{selectedUser.name}</p>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Nom</label>
+                  <p className="text-sm text-gray-900 dark:text-gray-100">{selectedUser.name}</p>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Email</label>
-                  <p className="text-sm text-gray-900">{selectedUser.email}</p>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Email</label>
+                  <p className="text-sm text-gray-900 dark:text-gray-100">{selectedUser.email}</p>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Rôle</label>
-                  <p className="text-sm text-gray-900 capitalize">{selectedUser.role}</p>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Rôle</label>
+                  <p className="text-sm text-gray-900 dark:text-gray-100 capitalize">{selectedUser.role}</p>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Statut</label>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Statut</label>
                   <div className="flex space-x-2">
                     {selectedUser.approved ? (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -517,28 +518,28 @@ export default function UserManagement() {
                 </div>
                 {selectedUser.company && (
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Entreprise</label>
-                    <p className="text-sm text-gray-900">{selectedUser.company.name}</p>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Entreprise</label>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">{selectedUser.company.name}</p>
                   </div>
                 )}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Date de création</label>
-                  <p className="text-sm text-gray-900">
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Date de création</label>
+                  <p className="text-sm text-gray-900 dark:text-gray-100">
                     {format(new Date(selectedUser.createdAt), 'dd MMM yyyy à HH:mm', { locale: fr })}
                   </p>
                 </div>
                 {selectedUser.approvedAt && (
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Date d'approbation</label>
-                    <p className="text-sm text-gray-900">
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Date d'approbation</label>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">
                       {format(new Date(selectedUser.approvedAt), 'dd MMM yyyy à HH:mm', { locale: fr })}
                     </p>
                   </div>
                 )}
                 {selectedUser.suspendedAt && (
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Date de suspension</label>
-                    <p className="text-sm text-gray-900">
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Date de suspension</label>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">
                       {format(new Date(selectedUser.suspendedAt), 'dd MMM yyyy à HH:mm', { locale: fr })}
                     </p>
                   </div>
@@ -550,7 +551,7 @@ export default function UserManagement() {
                     setShowDetailsModal(null)
                     setSelectedUser(null)
                   }}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
                 >
                   Fermer
                 </button>
@@ -559,7 +560,8 @@ export default function UserManagement() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   )
 }
 

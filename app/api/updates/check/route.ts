@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
 // Version actuelle de l'application (à mettre à jour à chaque release)
-const CURRENT_VERSION = '1.1.4'
+const CURRENT_VERSION = '2.0.0'
 
 export async function GET() {
   try {
@@ -24,38 +24,110 @@ export async function GET() {
       headers['Authorization'] = `token ${githubToken}`
     }
 
-    const response = await fetch(
-      `https://api.github.com/repos/${githubRepo}/releases/latest`,
-      { headers }
-    )
+    console.log('=== Début de la vérification des mises à jour ===')
+    console.log(`Repository: ${githubRepo}`)
+    console.log(`Token présent: ${githubToken ? 'OUI' : 'NON'}`)
 
-    if (!response.ok) {
-      // Si erreur 404, pas de release disponible
-      if (response.status === 404) {
-        return NextResponse.json({
-          currentVersion: CURRENT_VERSION,
-          latestVersion: CURRENT_VERSION,
-          updateAvailable: false,
-          message: 'Aucune release disponible',
-        })
+    // Essayer d'abord de récupérer la dernière release
+    let latestRelease = null
+    let latestVersion = CURRENT_VERSION
+    let releaseNotes = ''
+    let releaseUrl = ''
+    let publishedAt = ''
+    let releaseName = ''
+
+    try {
+      const releasesResponse = await fetch(
+        `https://api.github.com/repos/${githubRepo}/releases/latest`,
+        { headers }
+      )
+
+      if (releasesResponse.ok) {
+        latestRelease = await releasesResponse.json()
+        latestVersion = latestRelease.tag_name.replace(/^v/, '') // Enlever le préfixe 'v' si présent
+        releaseNotes = latestRelease.body || ''
+        releaseUrl = latestRelease.html_url
+        publishedAt = latestRelease.published_at || ''
+        releaseName = latestRelease.name || latestRelease.tag_name
+        console.log(`Release trouvée: ${latestVersion}`)
+      } else if (releasesResponse.status === 404) {
+        // Pas de release, essayer de récupérer les tags
+        console.log('Aucune release trouvée, recherche des tags...')
+        const tagsResponse = await fetch(
+          `https://api.github.com/repos/${githubRepo}/tags?per_page=10`,
+          { headers }
+        )
+
+        if (tagsResponse.ok) {
+          const tags = await tagsResponse.json()
+          console.log(`Tags trouvés: ${tags.length}`)
+          
+          if (tags && tags.length > 0) {
+            // Trier les tags par version (du plus récent au plus ancien)
+            const sortedTags = tags
+              .map((tag: any) => tag.name.replace(/^v/, ''))
+              .sort((a: string, b: string) => compareVersions(b, a))
+            
+            console.log(`Tags triés: ${sortedTags.join(', ')}`)
+            latestVersion = sortedTags[0]
+            console.log(`Tag le plus récent trouvé: ${tags.find((t: any) => t.name.replace(/^v/, '') === latestVersion)?.name} (version: ${latestVersion})`)
+            
+            // Construire l'URL de la release à partir du tag
+            releaseUrl = `https://github.com/${githubRepo}/releases/tag/${tags.find((t: any) => t.name.replace(/^v/, '') === latestVersion)?.name || `v${latestVersion}`}`
+            releaseName = `v${latestVersion}`
+          } else {
+            console.log('Aucun tag trouvé')
+            return NextResponse.json({
+              currentVersion: CURRENT_VERSION,
+              latestVersion: CURRENT_VERSION,
+              updateAvailable: false,
+              message: 'Aucune release ou tag disponible',
+            })
+          }
+        } else {
+          throw new Error(`GitHub API error (tags): ${tagsResponse.status}`)
+        }
+      } else {
+        throw new Error(`GitHub API error (releases): ${releasesResponse.status}`)
       }
-      throw new Error(`GitHub API error: ${response.status}`)
-    }
+    } catch (error) {
+      console.error('Erreur lors de la récupération des releases/tags:', error)
+      // En cas d'erreur, essayer quand même les tags
+      try {
+        const tagsResponse = await fetch(
+          `https://api.github.com/repos/${githubRepo}/tags?per_page=10`,
+          { headers }
+        )
 
-    const latestRelease = await response.json()
-    const latestVersion = latestRelease.tag_name.replace(/^v/, '') // Enlever le préfixe 'v' si présent
+        if (tagsResponse.ok) {
+          const tags = await tagsResponse.json()
+          if (tags && tags.length > 0) {
+            const sortedTags = tags
+              .map((tag: any) => tag.name.replace(/^v/, ''))
+              .sort((a: string, b: string) => compareVersions(b, a))
+            latestVersion = sortedTags[0]
+            releaseUrl = `https://github.com/${githubRepo}/releases/tag/${tags.find((t: any) => t.name.replace(/^v/, '') === latestVersion)?.name || `v${latestVersion}`}`
+            releaseName = `v${latestVersion}`
+          }
+        }
+      } catch (tagError) {
+        console.error('Erreur lors de la récupération des tags:', tagError)
+      }
+    }
 
     // Comparer les versions (format semver simple)
     const updateAvailable = compareVersions(latestVersion, CURRENT_VERSION) > 0
+    console.log(`Version actuelle: ${CURRENT_VERSION}, Dernière version: ${latestVersion}, Mise à jour disponible: ${updateAvailable}`)
+    console.log('=== Fin de la vérification des mises à jour (succès) ===')
 
     return NextResponse.json({
       currentVersion: CURRENT_VERSION,
       latestVersion: latestVersion,
       updateAvailable: updateAvailable,
-      releaseNotes: latestRelease.body || '',
-      releaseUrl: latestRelease.html_url,
-      publishedAt: latestRelease.published_at,
-      releaseName: latestRelease.name || latestRelease.tag_name,
+      releaseNotes: releaseNotes,
+      releaseUrl: releaseUrl,
+      publishedAt: publishedAt,
+      releaseName: releaseName,
     })
   } catch (error) {
     console.error('Erreur lors de la vérification des mises à jour:', error)

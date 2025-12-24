@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { getUserPrisma, getMainPrisma } from '@/lib/db-manager'
 import Navigation from './Navigation'
 import UpdateNotification from './UpdateNotification'
+import DashboardChatbot from './DashboardChatbot'
 import {
   Wrench,
   Users,
@@ -36,15 +37,15 @@ export default async function Dashboard() {
     if (user?.role === 'admin') {
       // Pour les admins, on affiche un tableau de bord vide mais avec la même structure
       return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
           <Navigation />
           <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
             <div className="px-4 py-6 sm:px-0">
               <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
                   Bienvenue, {session?.user?.name}
                 </h1>
-                <p className="mt-2 text-gray-600">
+                <p className="mt-2 text-gray-600 dark:text-gray-400">
                   Voici un aperçu de votre activité
                 </p>
               </div>
@@ -62,7 +63,7 @@ export default async function Dashboard() {
                     <Link
                       key={stat.name}
                       href={stat.href}
-                      className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
+                      className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
                     >
                       <div className="p-5">
                         <div className="flex items-center">
@@ -71,10 +72,10 @@ export default async function Dashboard() {
                           </div>
                           <div className="ml-5 w-0 flex-1">
                             <dl>
-                              <dt className="text-sm font-medium text-gray-500 truncate">
+                              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
                                 {stat.name}
                               </dt>
-                              <dd className="text-lg font-semibold text-gray-900">
+                              <dd className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                 {stat.value}
                               </dd>
                             </dl>
@@ -87,10 +88,10 @@ export default async function Dashboard() {
               </div>
 
               {/* Réparations récentes vides */}
-              <div className="bg-white shadow rounded-lg">
+              <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
                 <div className="px-4 py-5 sm:p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-medium text-gray-900">
+                    <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                       Réparations récentes
                     </h2>
                     <Link
@@ -103,7 +104,7 @@ export default async function Dashboard() {
                   <div className="flow-root">
                     <ul className="-my-5 divide-y divide-gray-200">
                       <li className="py-5">
-                        <p className="text-sm text-gray-500 text-center">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
                           Aucune réparation pour le moment
                         </p>
                       </li>
@@ -119,14 +120,14 @@ export default async function Dashboard() {
 
     // Pour les autres utilisateurs non approuvés
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Navigation />
         <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="px-4 py-6 sm:px-0">
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
               Bienvenue, {session?.user?.name}
             </h1>
-            <p className="mt-2 text-gray-600">
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
               Votre compte est en attente d'approbation ou n'est pas encore associé à une entreprise.
             </p>
           </div>
@@ -208,16 +209,16 @@ export default async function Dashboard() {
   })
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation />
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <UpdateNotification />
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
               Bienvenue, {session?.user?.name}
             </h1>
-            <p className="mt-2 text-gray-600">
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
               Voici un aperçu de votre activité
             </p>
           </div>
@@ -230,7 +231,7 @@ export default async function Dashboard() {
                 <Link
                   key={stat.name}
                   href={stat.href}
-                  className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
+                  className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
                 >
                   <div className="p-5">
                     <div className="flex items-center">
@@ -239,10 +240,10 @@ export default async function Dashboard() {
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">
+                          <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
                             {stat.name}
                           </dt>
-                          <dd className="text-lg font-semibold text-gray-900">
+                          <dd className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                             {stat.value}
                           </dd>
                         </dl>
@@ -255,24 +256,24 @@ export default async function Dashboard() {
           </div>
 
           {/* Réparations récentes */}
-          <div className="bg-white shadow rounded-lg">
+          <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-medium text-gray-900">
+                <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                   Réparations récentes
                 </h2>
                 <Link
                   href="/repairs"
-                  className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                  className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium"
                 >
                   Voir tout
                 </Link>
               </div>
               <div className="flow-root">
-                <ul className="-my-5 divide-y divide-gray-200">
+                <ul className="-my-5 divide-y divide-gray-200 dark:divide-gray-700">
                   {recentRepairs.length === 0 ? (
                     <li className="py-5">
-                      <p className="text-sm text-gray-500 text-center">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
                         Aucune réparation pour le moment
                       </p>
                     </li>
@@ -281,13 +282,13 @@ export default async function Dashboard() {
                       <li key={repair.id} className="py-5">
                         <div className="flex items-center space-x-4">
                           <div className="flex-shrink-0">
-                            <Wrench className="h-6 w-6 text-gray-400" />
+                            <Wrench className="h-6 w-6 text-gray-400 dark:text-gray-500" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                               {repair.deviceType} - {repair.brand} {repair.model}
                             </p>
-                            <p className="text-sm text-gray-500 truncate">
+                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                               {repair.customer.firstName} {repair.customer.lastName}
                             </p>
                           </div>
@@ -295,16 +296,16 @@ export default async function Dashboard() {
                             <span
                               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                 repair.status === 'completed'
-                                  ? 'bg-green-100 text-green-800'
+                                  ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
                                   : repair.status === 'in_progress'
-                                  ? 'bg-blue-100 text-blue-800'
+                                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200'
                                   : repair.status === 'waiting_parts'
-                                  ? 'bg-orange-100 text-orange-800'
+                                  ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200'
                                   : repair.status === 'pending'
-                                  ? 'bg-yellow-100 text-yellow-800'
+                                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200'
                                   : repair.status === 'cancelled'
-                                  ? 'bg-red-100 text-red-800'
-                                  : 'bg-gray-100 text-gray-800'
+                                  ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200'
+                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
                               }`}
                             >
                               {repair.status === 'completed'
@@ -330,6 +331,7 @@ export default async function Dashboard() {
           </div>
         </div>
       </main>
+      <DashboardChatbot />
     </div>
   )
 }

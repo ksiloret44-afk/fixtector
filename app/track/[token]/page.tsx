@@ -14,6 +14,8 @@ async function findRepairByToken(token: string) {
   const mainPrisma = getMainPrisma()
   const companies = await mainPrisma.company.findMany()
   
+  console.log(`[Tracking] Recherche du token: ${token} dans ${companies.length} entreprises`)
+  
   for (const company of companies) {
     try {
       const companyPrisma = getCompanyPrismaById(company.id)
@@ -36,14 +38,17 @@ async function findRepairByToken(token: string) {
       })
       
       if (repair) {
+        console.log(`[Tracking] Réparation trouvée pour l'entreprise: ${company.name}`)
         return { repair, company }
       }
-    } catch (error) {
-      // Continuer avec la prochaine entreprise
+    } catch (error: any) {
+      // Logger l'erreur mais continuer avec la prochaine entreprise
+      console.error(`[Tracking] Erreur lors de la recherche dans l'entreprise ${company.id}:`, error.message)
       continue
     }
   }
   
+  console.log(`[Tracking] Aucune réparation trouvée pour le token: ${token}`)
   return null
 }
 
@@ -52,12 +57,14 @@ export default async function TrackRepairPage({
 }: {
   params: { token: string }
 }) {
-  // Chercher la réparation dans toutes les bases de données
-  const result = await findRepairByToken(params.token)
-  
-  if (!result) {
-    notFound()
-  }
+  try {
+    // Chercher la réparation dans toutes les bases de données
+    const result = await findRepairByToken(params.token)
+    
+    if (!result) {
+      console.log(`[Tracking] Page 404 - Token non trouvé: ${params.token}`)
+      notFound()
+    }
   
   const { repair, company } = result
 
@@ -327,4 +334,8 @@ export default async function TrackRepairPage({
       </div>
     </div>
   )
+  } catch (error: any) {
+    console.error(`[Tracking] Erreur lors de l'affichage de la page de suivi:`, error)
+    throw error
+  }
 }

@@ -26,6 +26,12 @@ body {
     rgb(var(--background-start-rgb));
 }
 
+/* Dark mode support */
+.dark body {
+  background: #111827; /* gray-900 */
+  color: #f9fafb; /* gray-50 */
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
@@ -45,8 +51,26 @@ select {
   color: rgb(17, 24, 39) !important; /* gray-900 */
 }
 
+.dark input[type="text"],
+.dark input[type="email"],
+.dark input[type="password"],
+.dark input[type="number"],
+.dark input[type="tel"],
+.dark input[type="date"],
+.dark input[type="search"],
+.dark textarea,
+.dark select {
+  color: rgb(243, 244, 246) !important; /* gray-100 */
+  background-color: rgb(31, 41, 55) !important; /* gray-800 */
+}
+
 input::placeholder,
 textarea::placeholder {
+  color: rgb(156, 163, 175) !important; /* gray-400 */
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
   color: rgb(156, 163, 175) !important; /* gray-400 */
 }
 

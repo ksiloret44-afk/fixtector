@@ -63,9 +63,9 @@ export default function CompanyReviewsManagement() {
 
   if (loading) {
     return (
-      <div className="bg-white shadow rounded-lg p-6 text-center">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 text-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Chargement...</p>
+        <p className="mt-4 text-gray-600 dark:text-gray-400">Chargement...</p>
       </div>
     )
   }
@@ -86,54 +86,54 @@ export default function CompanyReviewsManagement() {
     <div className="space-y-6">
       {/* Statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0 bg-gray-100 rounded-md p-3">
-              <Building2 className="h-6 w-6 text-gray-600" />
+              <Building2 className="h-6 w-6 text-gray-600 dark:text-gray-400" />
             </div>
             <div className="ml-5">
-              <p className="text-sm font-medium text-gray-500">Total</p>
-              <p className="text-2xl font-semibold text-gray-900">{reviews.length}</p>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total</p>
+              <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{reviews.length}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0 bg-yellow-100 rounded-md p-3">
               <Clock className="h-6 w-6 text-yellow-600" />
             </div>
             <div className="ml-5">
-              <p className="text-sm font-medium text-gray-500">En attente</p>
-              <p className="text-2xl font-semibold text-gray-900">{pendingReviews.length}</p>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">En attente</p>
+              <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{pendingReviews.length}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0 bg-green-100 rounded-md p-3">
               <CheckCircle className="h-6 w-6 text-green-600" />
             </div>
             <div className="ml-5">
-              <p className="text-sm font-medium text-gray-500">Approuvés</p>
-              <p className="text-2xl font-semibold text-gray-900">{approvedReviews.length}</p>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Approuvés</p>
+              <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{approvedReviews.length}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0 bg-red-100 rounded-md p-3">
               <XCircle className="h-6 w-6 text-red-600" />
             </div>
             <div className="ml-5">
-              <p className="text-sm font-medium text-gray-500">Refusés</p>
-              <p className="text-2xl font-semibold text-gray-900">{rejectedReviews.length}</p>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Refusés</p>
+              <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{rejectedReviews.length}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Filtres */}
-      <div className="bg-white shadow rounded-lg p-4">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
         <div className="flex items-center space-x-4">
           <button
             onClick={() => setFilter('all')}
@@ -179,14 +179,14 @@ export default function CompanyReviewsManagement() {
       </div>
 
       {/* Liste des avis */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
         {filteredReviews.length === 0 ? (
           <div className="p-12 text-center">
             <Building2 className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">Aucun avis</h3>
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Aucun avis</h3>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {filteredReviews.map((review) => (
               <div key={review.id} className="p-6">
                 <div className="flex items-start justify-between">
@@ -218,13 +218,13 @@ export default function CompanyReviewsManagement() {
                           : 'En attente'}
                       </span>
                     </div>
-                    <p className="text-sm font-semibold text-gray-900 mb-2">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
                       {review.companyName || 'Entreprise anonyme'}
                     </p>
                     {review.comment && (
                       <p className="text-sm text-gray-700 mb-3 italic">"{review.comment}"</p>
                     )}
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       Soumis le {format(new Date(review.createdAt), 'dd MMM yyyy à HH:mm', { locale: fr })}
                       {review.approvedAt && (
                         <> • Approuvé le {format(new Date(review.approvedAt), 'dd MMM yyyy', { locale: fr })}</>

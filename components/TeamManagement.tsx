@@ -152,10 +152,10 @@ export default function TeamManagement() {
   }
 
   return (
-    <div className="bg-white shadow rounded-lg">
+    <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
       <div className="px-4 py-5 sm:p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-medium text-gray-900">Membres de l'équipe</h2>
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Membres de l'équipe</h2>
           <button
             onClick={() => {
               setShowForm(true)
@@ -183,7 +183,7 @@ export default function TeamManagement() {
 
         {showForm && (
           <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
               {editingMember ? 'Modifier le collaborateur' : 'Nouveau collaborateur'}
             </h3>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -196,7 +196,7 @@ export default function TeamManagement() {
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                   required
                 />
               </div>
@@ -210,7 +210,7 @@ export default function TeamManagement() {
                   id="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                   required
                 />
               </div>
@@ -224,7 +224,7 @@ export default function TeamManagement() {
                   id="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                   required={!editingMember}
                   minLength={6}
                 />
@@ -238,14 +238,14 @@ export default function TeamManagement() {
                   id="role"
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                   disabled={!isAdmin && formData.role === 'admin'}
                 >
                   <option value="user">Utilisateur</option>
                   {isAdmin && <option value="admin">Administrateur</option>}
                 </select>
                 {!isAdmin && (
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     Seuls les administrateurs peuvent créer des administrateurs
                   </p>
                 )}
@@ -276,41 +276,41 @@ export default function TeamManagement() {
 
         {loading ? (
           <div className="text-center py-8">
-            <p className="text-gray-500">Chargement...</p>
+            <p className="text-gray-500 dark:text-gray-400">Chargement...</p>
           </div>
         ) : teamMembers.length === 0 ? (
           <div className="text-center py-8">
             <Users className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">Aucun collaborateur</h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Aucun collaborateur</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Commencez par ajouter un collaborateur à votre équipe.
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nom</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rôle</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date d'ajout</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Nom</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Rôle</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Date d'ajout</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {teamMembers.map((member) => (
                   <tr key={member.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{member.name}</div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{member.name}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{member.email}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{member.email}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getRoleBadge(member.role)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {format(new Date(member.createdAt), 'dd MMM yyyy', { locale: fr })}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

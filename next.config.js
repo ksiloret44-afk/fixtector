@@ -4,7 +4,35 @@ const fs = require('fs')
 
 const nextConfig = {
   reactStrictMode: true,
-  webpack: (config, { isServer }) => {
+  
+  // Optimisations de performance
+  compress: true, // Activer la compression Gzip/Brotli
+  poweredByHeader: false, // Retirer le header X-Powered-By pour la sécurité et performance
+  
+  // Optimisation des images
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 60,
+  },
+  
+  // Optimisation du build
+  swcMinify: true, // Utiliser SWC pour la minification (plus rapide que Terser)
+  
+  // Optimisation des exports
+  experimental: {
+    // optimizeCss: true, // Désactivé temporairement - cause des problèmes avec PostCSS/Tailwind
+    optimizePackageImports: ['lucide-react', 'date-fns'], // Tree-shaking amélioré
+  },
+  
+  webpack: (config, { isServer, dev }) => {
+    // Exclure les fichiers de script du build
+    config.module.rules.push({
+      test: /check-user\.ts$/,
+      use: 'ignore-loader',
+    })
+    
     // Permettre l'import des clients Prisma générés (compatible Windows et Linux)
     // Utiliser process.cwd() pour obtenir le répertoire de travail actuel (compatible avec les deux OS)
     const prismaMainPath = path.resolve(process.cwd(), 'node_modules/.prisma/client-main')
@@ -38,6 +66,38 @@ const nextConfig = {
         tls: false,
         fs: false,
         crypto: false,
+      }
+    }
+    
+    // Optimisations webpack en production
+    if (!dev) {
+      config.optimization = {
+        ...config.optimization,
+        moduleIds: 'deterministic',
+        runtimeChunk: 'single',
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            default: false,
+            vendors: false,
+            // Créer un chunk séparé pour les vendors
+            vendor: {
+              name: 'vendor',
+              chunks: 'all',
+              test: /node_modules/,
+              priority: 20,
+            },
+            // Créer un chunk séparé pour les composants communs
+            common: {
+              name: 'common',
+              minChunks: 2,
+              chunks: 'all',
+              priority: 10,
+              reuseExistingChunk: true,
+              enforce: true,
+            },
+          },
+        },
       }
     }
     

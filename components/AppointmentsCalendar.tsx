@@ -226,17 +226,17 @@ export default function AppointmentsCalendar() {
 
   if (loading) {
     return (
-      <div className="bg-white shadow rounded-lg p-12 text-center">
-        <p className="text-gray-500">Chargement du calendrier...</p>
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-12 text-center">
+        <p className="text-gray-500 dark:text-gray-400">Chargement du calendrier...</p>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-medium text-gray-900">Rendez-vous</h2>
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Rendez-vous</h2>
           <button
             onClick={() => {
               setShowForm(true)
@@ -298,8 +298,8 @@ export default function AppointmentsCalendar() {
       </div>
 
       {showForm && (
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
             {selectedAppointment ? 'Modifier le rendez-vous' : 'Nouveau rendez-vous'}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">

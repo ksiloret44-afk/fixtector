@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Shield, Users, UserCheck, Clock } from 'lucide-react'
 import UserManagement from './UserManagement'
+import CacheCleaner from './CacheCleaner'
 
 interface Stats {
   totalUsers: number
@@ -31,7 +32,7 @@ export default function AdminDashboard() {
   if (loading || !stats) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">Chargement...</p>
+        <p className="text-gray-500 dark:text-gray-400">Chargement...</p>
       </div>
     )
   }
@@ -70,8 +71,8 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Administration</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Administration</h1>
+        <p className="mt-2 text-gray-600 dark:text-gray-400">
           Gérez les utilisateurs et les paramètres de l'application
         </p>
       </div>
@@ -83,7 +84,7 @@ export default function AdminDashboard() {
           return (
             <div
               key={stat.name}
-              className="bg-white overflow-hidden shadow rounded-lg"
+              className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg"
             >
               <div className="p-5">
                 <div className="flex items-center">
@@ -92,10 +93,10 @@ export default function AdminDashboard() {
                   </div>
                   <div className="ml-5 w-0 flex-1">
                     <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
+                      <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
                         {stat.name}
                       </dt>
-                      <dd className="text-lg font-semibold text-gray-900">
+                      <dd className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                         {stat.value}
                       </dd>
                     </dl>
@@ -105,6 +106,12 @@ export default function AdminDashboard() {
             </div>
           )
         })}
+      </div>
+
+      {/* Nettoyage de cache */}
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">🧹 Nettoyage de cache</h2>
+        <CacheCleaner />
       </div>
 
       {/* Gestion des utilisateurs */}

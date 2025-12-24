@@ -67,9 +67,9 @@ export default function ReviewsManagement() {
 
   if (loading) {
     return (
-      <div className="bg-white shadow rounded-lg p-6 text-center">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 text-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Chargement...</p>
+        <p className="mt-4 text-gray-600 dark:text-gray-400">Chargement...</p>
       </div>
     )
   }
@@ -77,7 +77,7 @@ export default function ReviewsManagement() {
   return (
     <div className="space-y-6">
       {/* Filtres */}
-      <div className="bg-white shadow rounded-lg p-4">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
         <div className="flex items-center space-x-4">
           <button
             onClick={() => setFilter('all')}
@@ -123,12 +123,12 @@ export default function ReviewsManagement() {
       </div>
 
       {/* Liste des avis */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
         {filteredReviews.length === 0 ? (
           <div className="p-12 text-center">
             <Star className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">Aucun avis</h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Aucun avis</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {filter === 'pending' && 'Aucune demande d\'avis en attente'}
               {filter === 'submitted' && 'Aucun avis soumis en attente d\'approbation'}
               {filter === 'approved' && 'Aucun avis approuvé'}
@@ -136,7 +136,7 @@ export default function ReviewsManagement() {
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-gray-200">
+          <ul className="divide-y divide-gray-200 dark:divide-gray-700">
             {filteredReviews.map((review) => (
               <li key={review.id} className="p-6">
                 <div className="flex items-start justify-between">
@@ -168,12 +168,12 @@ export default function ReviewsManagement() {
 
                     {review.rating > 0 ? (
                       <>
-                        <p className="text-sm text-gray-900 mb-2">
+                        <p className="text-sm text-gray-900 dark:text-gray-100 mb-2">
                           <span className="font-medium">
                             {review.customerName || `${review.customer.firstName} ${review.customer.lastName}`}
                           </span>
                           {review.repair && (
-                            <span className="text-gray-500 ml-2">
+                            <span className="text-gray-500 dark:text-gray-400 ml-2">
                               - {review.repair.deviceType} {review.repair.brand} {review.repair.model}
                             </span>
                           )}
@@ -181,23 +181,23 @@ export default function ReviewsManagement() {
                         {review.comment && (
                           <p className="text-sm text-gray-700 mb-2 italic">"{review.comment}"</p>
                         )}
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           Soumis le {format(new Date(review.submittedAt!), 'dd MMMM yyyy à HH:mm', { locale: fr })}
                         </p>
                       </>
                     ) : (
                       <>
-                        <p className="text-sm text-gray-900 mb-2">
+                        <p className="text-sm text-gray-900 dark:text-gray-100 mb-2">
                           <span className="font-medium">
                             {review.customer.firstName} {review.customer.lastName}
                           </span>
                           {review.repair && (
-                            <span className="text-gray-500 ml-2">
+                            <span className="text-gray-500 dark:text-gray-400 ml-2">
                               - {review.repair.deviceType} {review.repair.brand} {review.repair.model}
                             </span>
                           )}
                         </p>
-                        <p className="text-xs text-gray-500 mb-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                           Avis créé - En attente de soumission
                         </p>
                         <button

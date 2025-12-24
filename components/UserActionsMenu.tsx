@@ -58,7 +58,7 @@ export default function UserActionsMenu({
       />
       <div 
         ref={menuRef}
-        className="fixed w-56 bg-white rounded-md shadow-xl ring-1 ring-black ring-opacity-5 z-[100] border border-gray-200 overflow-hidden"
+        className="fixed w-56 bg-white dark:bg-gray-800 rounded-md shadow-xl ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-[100] border border-gray-200 dark:border-gray-700 overflow-hidden"
         style={{
           top: `${menuPosition.top}px`,
           left: `${menuPosition.left}px`,
@@ -66,13 +66,13 @@ export default function UserActionsMenu({
       >
         <div className="py-1">
           {/* Informations */}
-          <div className="px-3 py-2 text-xs font-medium text-gray-500 uppercase">Informations</div>
+          <div className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Informations</div>
           <button
             onClick={() => {
               onViewDetails()
               setIsOpen(false)
             }}
-            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
           >
             <User className="h-4 w-4 mr-2" />
             Voir les détails
@@ -82,21 +82,21 @@ export default function UserActionsMenu({
               onEdit()
               setIsOpen(false)
             }}
-            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
           >
             <Edit className="h-4 w-4 mr-2" />
             Modifier les informations
           </button>
 
           {/* Gestion du compte */}
-          <div className="border-t border-gray-100 my-1"></div>
-          <div className="px-3 py-2 text-xs font-medium text-gray-500 uppercase">Gestion du compte</div>
+          <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+          <div className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Gestion du compte</div>
           <button
             onClick={() => {
               onPasswordChange()
               setIsOpen(false)
             }}
-            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
           >
             <Lock className="h-4 w-4 mr-2" />
             Changer le mot de passe
@@ -106,7 +106,7 @@ export default function UserActionsMenu({
               onSuspend()
               setIsOpen(false)
             }}
-            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
           >
             {suspended ? (
               <>
@@ -122,13 +122,13 @@ export default function UserActionsMenu({
           </button>
 
           {/* Supprimer */}
-          <div className="border-t border-gray-100 my-1"></div>
+          <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
           <button
             onClick={() => {
               onDelete()
               setIsOpen(false)
             }}
-            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
+            className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center"
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Supprimer
