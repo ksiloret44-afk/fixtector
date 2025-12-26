@@ -6,6 +6,10 @@ import { execSync } from 'child_process'
 import * as fs from 'fs'
 import * as path from 'path'
 
+// Empêcher l'exécution de ce code pendant le build
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
@@ -35,13 +39,16 @@ export async function POST(request: Request) {
       try {
         if (!fs.existsSync(dirPath)) return 0
         const files = fs.readdirSync(dirPath)
-        for (const file of files) {
-          const filePath = path.join(dirPath, file)
-          const stats = fs.statSync(filePath)
-          if (stats.isDirectory()) {
-            totalSize += getDirSize(filePath)
-          } else {
-            totalSize += stats.size
+        // Vérifier que files est un tableau avant d'itérer
+        if (Array.isArray(files)) {
+          for (const file of files) {
+            const filePath = path.join(dirPath, file)
+            const stats = fs.statSync(filePath)
+            if (stats.isDirectory()) {
+              totalSize += getDirSize(filePath)
+            } else {
+              totalSize += stats.size
+            }
           }
         }
       } catch (error) {
@@ -140,17 +147,24 @@ export async function POST(request: Request) {
       // Nettoyer les anciens logs (plus de 7 jours)
       const logsDir = path.join(process.cwd(), 'logs')
       if (fs.existsSync(logsDir)) {
-        const files = fs.readdirSync(logsDir)
-        const now = Date.now()
-        const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000
+        try {
+          const files = fs.readdirSync(logsDir)
+          // Vérifier que files est un tableau avant d'itérer
+          if (Array.isArray(files)) {
+            const now = Date.now()
+            const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000
 
-        for (const file of files) {
-          const filePath = path.join(logsDir, file)
-          const stats = fs.statSync(filePath)
-          if (stats.mtimeMs < sevenDaysAgo && file.endsWith('.log')) {
-            tempFreed += stats.size
-            fs.unlinkSync(filePath)
+            for (const file of files) {
+              const filePath = path.join(logsDir, file)
+              const stats = fs.statSync(filePath)
+              if (stats.mtimeMs < sevenDaysAgo && file.endsWith('.log')) {
+                tempFreed += stats.size
+                fs.unlinkSync(filePath)
+              }
+            }
           }
+        } catch (error) {
+          // Ignorer les erreurs de lecture du répertoire
         }
       }
 
@@ -163,21 +177,37 @@ export async function POST(request: Request) {
       let buildsFreed = 0
       const staticDir = path.join(process.cwd(), '.next', 'static')
       if (fs.existsSync(staticDir)) {
-        const files = fs.readdirSync(staticDir, { recursive: true })
-        const now = Date.now()
-        const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000
+        try {
+          // Utiliser une fonction récursive au lieu de { recursive: true } pour compatibilité
+          const cleanOldBuilds = (dir: string): void => {
+            try {
+              const entries = fs.readdirSync(dir, { withFileTypes: true })
+              const now = Date.now()
+              const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000
 
-        for (const file of files) {
-          const filePath = path.join(staticDir, String(file))
-          try {
-            const stats = fs.statSync(filePath)
-            if (stats.mtimeMs < thirtyDaysAgo && stats.isFile()) {
-              buildsFreed += stats.size
-              fs.unlinkSync(filePath)
+              for (const entry of entries) {
+                const entryPath = path.join(dir, entry.name)
+                try {
+                  if (entry.isDirectory()) {
+                    cleanOldBuilds(entryPath)
+                  } else if (entry.isFile()) {
+                    const stats = fs.statSync(entryPath)
+                    if (stats.mtimeMs < thirtyDaysAgo) {
+                      buildsFreed += stats.size
+                      fs.unlinkSync(entryPath)
+                    }
+                  }
+                } catch (error) {
+                  // Ignorer les erreurs pour ce fichier/dossier
+                }
+              }
+            } catch (error) {
+              // Ignorer les erreurs de lecture du répertoire
             }
-          } catch (error) {
-            // Ignorer les erreurs
           }
+          cleanOldBuilds(staticDir)
+        } catch (error) {
+          // Ignorer les erreurs de lecture du répertoire
         }
       }
       results.builds = buildsFreed
