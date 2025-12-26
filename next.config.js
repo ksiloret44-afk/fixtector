@@ -2,6 +2,9 @@
 const path = require('path')
 const fs = require('fs')
 
+// Charger le polyfill pour 'self' avant tout
+require('./lib/polyfills.js')
+
 const nextConfig = {
   reactStrictMode: true,
   
