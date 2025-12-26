@@ -1,9 +1,16 @@
 /** @type {import('next').NextConfig} */
+// Définir 'self' globalement AVANT tout import
+if (typeof global !== 'undefined' && typeof global.self === 'undefined') {
+  global.self = global
+}
+
 const path = require('path')
 const fs = require('fs')
 
-// Charger le polyfill pour 'self' avant tout
-require('./lib/polyfills.js')
+// Polyfill pour 'self' (doit être défini avant tout)
+if (typeof global !== 'undefined' && typeof global.self === 'undefined') {
+  global.self = global
+}
 
 const nextConfig = {
   reactStrictMode: true,

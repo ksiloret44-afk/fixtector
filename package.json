@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3001",
     "dev:build": "powershell -ExecutionPolicy Bypass -File ./scripts/start-with-build.ps1",
-    "build": "npm run db:generate && next build",
+    "build": "node scripts/pre-build.js && npm run db:generate && next build",
     "start": "next start -p 3001",
     "lint": "next lint",
     "db:generate": "prisma generate && prisma generate --schema=prisma/schema-main.prisma && prisma generate --schema=prisma/schema-company.prisma",
@@ -46,7 +46,6 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@types/archiver": "^7.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "20.19.27",
     "@types/nodemailer": "^7.0.4",
