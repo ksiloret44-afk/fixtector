@@ -72,10 +72,35 @@ if (-not (Test-Path ".env.local")) {
     Write-Warning ".env.local introuvable. Créez-le avant de démarrer."
 }
 
-# Vérifier node_modules
-if (-not (Test-Path "node_modules")) {
-    Write-Info "Installation des dépendances..."
+# Vérifier et installer les dépendances manquantes
+Write-Info "Vérification des dépendances..."
+$packageJson = Get-Content "package.json" | ConvertFrom-Json
+$allDeps = @()
+if ($packageJson.dependencies) {
+    $allDeps += $packageJson.dependencies.PSObject.Properties.Name
+}
+if ($packageJson.devDependencies) {
+    $allDeps += $packageJson.devDependencies.PSObject.Properties.Name
+}
+
+$missingDeps = @()
+foreach ($dep in $allDeps) {
+    $depPath = "node_modules\$dep"
+    if (-not (Test-Path $depPath)) {
+        $missingDeps += $dep
+    }
+}
+
+if ($missingDeps.Count -gt 0 -or -not (Test-Path "node_modules")) {
+    Write-Info "Installation des dépendances manquantes..."
     npm install
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Erreur lors de l'installation des dépendances"
+        exit 1
+    }
+    Write-Success "Dépendances installées avec succès"
+} else {
+    Write-Success "Toutes les dépendances sont installées"
 }
 
 # Générer Prisma Client

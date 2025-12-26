@@ -1,67 +1,112 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { X, Sparkles, CheckCircle, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 
 export default function UpdateNewsModal() {
+  const { data: session } = useSession()
   const [show, setShow] = useState(false)
   const [updateInfo, setUpdateInfo] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Vérifier la version actuelle et la dernière version vue
-    const currentVersion = '1.1.3' // À mettre à jour à chaque release
-    const lastSeenVersion = localStorage.getItem('lastSeenUpdateVersion')
-    const dontShowAgain = localStorage.getItem('dontShowUpdateModal') === 'true'
-    const dontShowVersion = localStorage.getItem('dontShowUpdateModalVersion')
-    
-    // Extraire la version majeure (ex: "1.1.2" -> "1.1")
-    const getMajorVersion = (version: string) => {
-      const parts = version.split('.')
-      return `${parts[0]}.${parts[1] || '0'}`
+    // Vérifier que l'utilisateur est admin
+    const isAdmin = (session?.user as any)?.role === 'admin'
+    if (!isAdmin) {
+      setLoading(false)
+      return
     }
-    
-    const currentMajor = getMajorVersion(currentVersion)
-    const lastSeenMajor = lastSeenVersion ? getMajorVersion(lastSeenVersion) : null
-    const dontShowMajor = dontShowVersion ? getMajorVersion(dontShowVersion) : null
-    
-    // Afficher uniquement si :
-    // 1. La version majeure a changé (nouvelle mise à jour majeure) ET
-    // 2. Soit l'utilisateur n'a pas coché "Ne plus apparaître", soit la version majeure a changé depuis
-    const shouldShow = 
-      currentMajor !== lastSeenMajor && // Nouvelle version majeure
-      (!dontShowAgain || currentMajor !== dontShowMajor) // Pas de "ne plus apparaître" OU nouvelle version majeure depuis
-    
-    if (shouldShow) {
-      fetch('/api/updates/check')
-        .then(res => res.json())
-        .then(data => {
+
+    // Récupérer les préférences depuis l'API
+    const checkPreferences = async () => {
+      try {
+        const currentVersion = '1.1.3' // À mettre à jour à chaque release
+        
+        // Récupérer les préférences depuis l'API
+        const prefResponse = await fetch('/api/updates/preference')
+        const preferences = await prefResponse.json()
+        
+        const lastSeenVersion = preferences.lastSeenUpdateVersion
+        const dontShowAgain = preferences.hideUpdateModal
+        
+        // Extraire la version majeure (ex: "1.1.2" -> "1.1")
+        const getMajorVersion = (version: string) => {
+          const parts = version.split('.')
+          return `${parts[0]}.${parts[1] || '0'}`
+        }
+        
+        const currentMajor = getMajorVersion(currentVersion)
+        const lastSeenMajor = lastSeenVersion ? getMajorVersion(lastSeenVersion) : null
+        
+        // Afficher uniquement si :
+        // 1. La version majeure a changé (nouvelle mise à jour majeure) ET
+        // 2. L'utilisateur n'a pas coché "Ne plus apparaître"
+        const shouldShow = 
+          currentMajor !== lastSeenMajor && // Nouvelle version majeure
+          !dontShowAgain // Pas de "ne plus apparaître"
+        
+        if (shouldShow) {
+          const updateResponse = await fetch('/api/updates/check')
+          const data = await updateResponse.json()
           if (data.currentVersion) {
             setUpdateInfo(data)
             setShow(true)
           }
+        }
+      } catch (err) {
+        console.error('Erreur:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (session) {
+      checkPreferences()
+    } else {
+      setLoading(false)
+    }
+  }, [session])
+
+  const handleClose = async () => {
+    setShow(false)
+    if (updateInfo?.currentVersion) {
+      // Mettre à jour la dernière version vue
+      try {
+        await fetch('/api/updates/preference', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lastSeenUpdateVersion: updateInfo.currentVersion,
+          }),
         })
-        .catch(err => console.error('Erreur:', err))
-    }
-  }, [])
-
-  const handleClose = () => {
-    setShow(false)
-    if (updateInfo?.currentVersion) {
-      localStorage.setItem('lastSeenUpdateVersion', updateInfo.currentVersion)
+      } catch (err) {
+        console.error('Erreur lors de la mise à jour:', err)
+      }
     }
   }
 
-  const handleDontShowAgain = () => {
+  const handleDontShowAgain = async () => {
     setShow(false)
     if (updateInfo?.currentVersion) {
-      localStorage.setItem('lastSeenUpdateVersion', updateInfo.currentVersion)
-      localStorage.setItem('dontShowUpdateModal', 'true')
-      localStorage.setItem('dontShowUpdateModalVersion', updateInfo.currentVersion)
+      // Mettre à jour les préférences : ne plus afficher + dernière version vue
+      try {
+        await fetch('/api/updates/preference', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            hideUpdateModal: true,
+            lastSeenUpdateVersion: updateInfo.currentVersion,
+          }),
+        })
+      } catch (err) {
+        console.error('Erreur lors de la mise à jour:', err)
+      }
     }
   }
 
-  if (!show || !updateInfo) {
+  if (loading || !show || !updateInfo) {
     return null
   }
 

@@ -5,7 +5,7 @@ import ActionsMenu from './ActionsMenu'
 interface QuoteActionsMenuProps {
   quoteId: string
   status: string
-  repairId: string
+  repairId?: string
 }
 
 export default function QuoteActionsMenu({ quoteId, status, repairId }: QuoteActionsMenuProps) {

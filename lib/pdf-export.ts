@@ -40,7 +40,7 @@ interface InvoiceData {
   createdAt: Date
   dueDate?: Date
   customer: CustomerInfo
-  repair: {
+  repair?: {
     ticketNumber: string
     deviceType: string
     brand: string
@@ -67,7 +67,7 @@ interface QuoteData {
   createdAt: Date
   validUntil: Date
   customer: CustomerInfo
-  repair: {
+  repair?: {
     ticketNumber: string
     deviceType: string
     brand: string
@@ -225,11 +225,14 @@ export async function generateInvoicePDF(
   yPos += 8
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(10)
-  doc.text(`Ticket: ${invoice.repair.ticketNumber}`, margin, yPos)
-  yPos += 6
-  doc.text(`Appareil: ${invoice.repair.deviceType} - ${invoice.repair.brand} ${invoice.repair.model}`, margin, yPos)
-  yPos += 6
-  doc.text(`Problème: ${invoice.repair.issue.substring(0, 80)}${invoice.repair.issue.length > 80 ? '...' : ''}`, margin, yPos)
+  if (invoice.repair) {
+    doc.text(`Ticket: ${invoice.repair.ticketNumber}`, margin, yPos)
+    yPos += 6
+    doc.text(`Appareil: ${invoice.repair.deviceType} - ${invoice.repair.brand} ${invoice.repair.model}`, margin, yPos)
+    yPos += 6
+    doc.text(`Problème: ${invoice.repair.issue.substring(0, 80)}${invoice.repair.issue.length > 80 ? '...' : ''}`, margin, yPos)
+    yPos += 6
+  }
 
   // Tableau des prestations
   yPos += 15
@@ -520,11 +523,14 @@ export async function generateQuotePDF(
   yPos += 8
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(10)
-  doc.text(`Ticket: ${quote.repair.ticketNumber}`, margin, yPos)
-  yPos += 6
-  doc.text(`Appareil: ${quote.repair.deviceType} - ${quote.repair.brand} ${quote.repair.model}`, margin, yPos)
-  yPos += 6
-  doc.text(`Problème: ${quote.repair.issue.substring(0, 80)}${quote.repair.issue.length > 80 ? '...' : ''}`, margin, yPos)
+  if (quote.repair) {
+    doc.text(`Ticket: ${quote.repair.ticketNumber}`, margin, yPos)
+    yPos += 6
+    doc.text(`Appareil: ${quote.repair.deviceType} - ${quote.repair.brand} ${quote.repair.model}`, margin, yPos)
+    yPos += 6
+    doc.text(`Problème: ${quote.repair.issue.substring(0, 80)}${quote.repair.issue.length > 80 ? '...' : ''}`, margin, yPos)
+    yPos += 6
+  }
 
   // Tableau des prestations
   yPos += 15

@@ -58,6 +58,7 @@ model User {
   chatbotMessages ChatbotMessage[]
   companyReviews CompanyReview[]
   passwordResetTokens PasswordResetToken[]
+  twoFactorBackupCodes TwoFactorBackupCode[]
 }
 
 model Subscription {
@@ -116,6 +117,7 @@ model StripeConfig {
   publishableKey  String?
   secretKey       String?
   webhookSecret   String?
+  stripePriceId   String?  // Price ID Stripe pour réutiliser le même prix
   isActive        Boolean  @default(false)
   
   createdAt       DateTime @default(now())
@@ -190,6 +192,20 @@ model PasswordResetToken {
   @@index([userId])
   @@index([token])
   @@index([expiresAt])
+  @@index([used])
+}
+
+model TwoFactorBackupCode {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String   // Code hashé avec bcrypt
+  used      Boolean  @default(false)
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([codeHash])
   @@index([used])
 }
 

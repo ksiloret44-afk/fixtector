@@ -128,6 +128,19 @@ export async function POST(request: Request) {
         approved: true, // Approuvé automatiquement car créé par un membre de l'entreprise
         approvedBy: (session.user as any).id,
         approvedAt: new Date(),
+        // Créer un abonnement actif par défaut (sauf pour les admins qui sont exemptés)
+        ...(safeRole !== 'admin' ? {
+          subscription: {
+            create: {
+              status: 'active',
+              plan: 'standard',
+              currentPeriodStart: new Date(),
+              currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 jours
+              lastPaymentStatus: 'succeeded',
+              lastPaymentDate: new Date(),
+            },
+          },
+        } : {}),
       },
       select: {
         id: true,

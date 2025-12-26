@@ -33,7 +33,18 @@ export async function GET() {
           
           const companyPrisma = getCompanyPrisma(company.id)
           const reviews = await companyPrisma.review.findMany({
-            include: {
+            select: {
+              id: true,
+              rating: true,
+              comment: true,
+              customerName: true,
+              reviewToken: true,
+              submittedAt: true,
+              isApproved: true,
+              approvedAt: true,
+              rejectedAt: true,
+              createdAt: true,
+              updatedAt: true,
               repair: {
                 select: {
                   deviceType: true,
@@ -75,7 +86,18 @@ export async function GET() {
 
     // Récupérer tous les avis clients finaux
     const reviews = await companyPrisma.review.findMany({
-      include: {
+      select: {
+        id: true,
+        rating: true,
+        comment: true,
+        customerName: true,
+        reviewToken: true,
+        submittedAt: true,
+        isApproved: true,
+        approvedAt: true,
+        rejectedAt: true,
+        createdAt: true,
+        updatedAt: true,
         repair: {
           select: {
             deviceType: true,

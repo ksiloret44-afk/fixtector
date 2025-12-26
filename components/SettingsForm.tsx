@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Bell, Database, Shield, Receipt, Mail, MessageSquare, Building2, Upload, X, Image as ImageIcon, Lock, Unlock, Server, Send, CheckCircle, AlertCircle, Terminal } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Bell, Database, Shield, Receipt, Mail, MessageSquare, Building2, Upload, X, Image as ImageIcon, Lock, Unlock, Server, Send, CheckCircle, AlertCircle, Terminal, CreditCard, ChevronDown } from 'lucide-react'
 import VHostConfig from './VHostConfig'
 
 interface SettingsFormProps {
@@ -9,18 +9,48 @@ interface SettingsFormProps {
 }
 
 export default function SettingsForm({ userRole }: SettingsFormProps) {
-  // Restaurer l'onglet actif depuis localStorage ou utiliser 'general' par défaut
-  const [activeTab, setActiveTab] = useState(() => {
+  // Utiliser 'general' par défaut pour éviter les erreurs d'hydratation
+  // Ne pas utiliser localStorage dans l'initialisation pour éviter les différences serveur/client
+  const [activeTab, setActiveTab] = useState('general')
+  const [isMounted, setIsMounted] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+  
+  // Fermer le menu si on clique en dehors
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [menuOpen])
+  
+  // Restaurer l'onglet actif depuis localStorage après le montage (uniquement côté client)
+  useEffect(() => {
+    setIsMounted(true)
     if (typeof window !== 'undefined') {
       const savedTab = localStorage.getItem('settingsActiveTab')
-      return savedTab || 'general'
+      if (savedTab && savedTab !== activeTab) {
+        // Utiliser requestAnimationFrame pour s'assurer que le DOM est prêt
+        requestAnimationFrame(() => {
+          setActiveTab(savedTab)
+        })
+      }
     }
-    return 'general'
-  })
+  }, [])
   
   // Sauvegarder l'onglet actif dans localStorage
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId)
+    setMenuOpen(false)
     if (typeof window !== 'undefined') {
       localStorage.setItem('settingsActiveTab', tabId)
     }
@@ -92,6 +122,12 @@ export default function SettingsForm({ userRole }: SettingsFormProps) {
   const [logsLoading, setLogsLoading] = useState(false)
   const [logsAutoRefresh, setLogsAutoRefresh] = useState(true)
   const [logsFilter, setLogsFilter] = useState<'all' | 'info' | 'warn' | 'error' | 'debug'>('all')
+  
+  // Configuration Stripe
+  const [stripePublishableKey, setStripePublishableKey] = useState('')
+  const [stripeSecretKey, setStripeSecretKey] = useState('')
+  const [stripeWebhookSecret, setStripeWebhookSecret] = useState('')
+  const [stripeActive, setStripeActive] = useState(false)
 
   // Types d'entreprises françaises avec leurs taux de TVA
   const companyTypes = [
@@ -229,7 +265,25 @@ export default function SettingsForm({ userRole }: SettingsFormProps) {
     
     // Vérifier le statut SSL
     checkSslStatus()
-  }, [])
+    
+    // Charger la configuration Stripe (uniquement pour les admins)
+    if (userRole === 'admin') {
+      fetch('/api/stripe/config')
+        .then(res => res.json())
+        .then(data => {
+          if (data.config) {
+            setStripePublishableKey(data.config.publishableKey || '')
+            // Ne pas afficher les clés secrètes si elles sont déjà configurées
+            setStripeSecretKey(data.config.hasSecretKey ? '' : (data.config.secretKey || ''))
+            setStripeWebhookSecret(data.config.hasWebhookSecret ? '' : (data.config.webhookSecret || ''))
+            setStripeActive(data.config.isActive || false)
+          }
+        })
+        .catch(err => {
+          console.error('Erreur lors du chargement de la config Stripe:', err)
+        })
+    }
+  }, [userRole])
   
   const checkSslStatus = async () => {
     setSslStatus('checking')
@@ -555,6 +609,20 @@ export default function SettingsForm({ userRole }: SettingsFormProps) {
         }),
       })
 
+      // Sauvegarder la configuration Stripe (uniquement pour les admins)
+      if (userRole === 'admin') {
+        await fetch('/api/stripe/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            publishableKey: stripePublishableKey,
+            secretKey: stripeSecretKey,
+            webhookSecret: stripeWebhookSecret,
+            isActive: stripeActive,
+          }),
+        })
+      }
+
       // Sauvegarder les informations de l'entreprise
       const companyResponse = await fetch('/api/company', {
         method: 'PATCH',
@@ -614,6 +682,7 @@ export default function SettingsForm({ userRole }: SettingsFormProps) {
   const tabs = [
     { id: 'general', label: 'Général', icon: Building2 },
     { id: 'notifications', label: 'Notifications', icon: Bell },
+    ...(userRole === 'admin' ? [{ id: 'stripe', label: 'Stripe', icon: CreditCard }] : []),
     ...(userRole === 'admin' ? [{ id: 'ssl', label: 'SSL/HTTPS', icon: Lock }] : []),
     { id: 'database', label: 'Base de données', icon: Database },
     { id: 'security', label: 'Sécurité', icon: Shield },
@@ -622,31 +691,57 @@ export default function SettingsForm({ userRole }: SettingsFormProps) {
   ].filter(Boolean) // S'assurer que tous les éléments sont valides
 
   return (
-    <div className="space-y-6">
-      {/* Onglets */}
+    <div className="space-y-6" suppressHydrationWarning>
+      {/* Menu déroulant pour les onglets */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
-        <div className="border-b border-gray-200 dark:border-gray-700">
-          <nav className="flex -mb-px" aria-label="Tabs">
-            {tabs.map((tab) => {
-              const Icon = tab.icon
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`
-                    flex items-center px-6 py-4 text-sm font-medium border-b-2 transition-colors
-                    ${activeTab === tab.id
-                      ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
-                    }
-                  `}
-                >
-                  <Icon className="h-5 w-5 mr-2" />
-                  {tab.label}
-                </button>
-              )
-            })}
-          </nav>
+        <div className="p-4">
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg border border-gray-300 dark:border-gray-600 transition-colors"
+            >
+              <div className="flex items-center">
+                {(() => {
+                  const currentTab = tabs.find(t => t.id === activeTab)
+                  const Icon = currentTab?.icon || Building2
+                  return (
+                    <>
+                      <Icon className="h-4 w-4 mr-2" />
+                      <span>{currentTab?.label || 'Général'}</span>
+                    </>
+                  )
+                })()}
+              </div>
+              <ChevronDown className={`w-4 h-4 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {menuOpen && (
+              <div className="absolute z-10 mt-2 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => handleTabChange(tab.id)}
+                      className={`
+                        w-full flex items-center px-4 py-3 text-sm font-medium transition-colors
+                        ${activeTab === tab.id
+                          ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }
+                      `}
+                    >
+                      <Icon className="h-4 w-4 mr-3" />
+                      <span>{tab.label}</span>
+                      {activeTab === tab.id && (
+                        <CheckCircle className="h-4 w-4 ml-auto text-primary-600 dark:text-primary-400" />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1062,6 +1157,66 @@ export default function SettingsForm({ userRole }: SettingsFormProps) {
           </div>
         </div>
       </div>
+
+      {/* Fiscalité */}
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <div className="flex items-center mb-4">
+          <Receipt className="h-5 w-5 mr-2 text-gray-400 dark:text-gray-500" />
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Fiscalité</h2>
+        </div>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Type d'entreprise <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={companyType}
+              onChange={(e) => handleCompanyTypeChange(e.target.value)}
+              disabled={loadingSettings}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-50"
+            >
+              {companyTypes.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {companyTypes.find(t => t.value === companyType)?.description}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Taux de TVA (%)
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              max="100"
+              value={taxRate}
+              onChange={(e) => setTaxRate(e.target.value)}
+              disabled={loadingSettings || companyType === 'auto-entrepreneur'}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-50"
+              placeholder="20.0"
+            />
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {companyType === 'auto-entrepreneur' 
+                ? 'Les auto-entrepreneurs sont en franchise de TVA en dessous des seuils (0%). Le taux sera automatiquement appliqué.'
+                : 'Taux de TVA par défaut utilisé pour les factures. Conforme à la législation en vigueur.'}
+            </p>
+            {companyType === 'auto-entrepreneur' && (
+              <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-xs text-yellow-800">
+                  <strong>Note :</strong> Les auto-entrepreneurs sont exonérés de TVA en dessous des seuils de chiffre d'affaires (176 200€ pour les prestations de services, 72 600€ pour les ventes). Au-delà, vous devez opter pour le régime réel et facturer la TVA.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
         </>
       )}
 
@@ -1442,64 +1597,95 @@ export default function SettingsForm({ userRole }: SettingsFormProps) {
           )}
         </div>
       </div>
+        </>
+      )}
 
-      {/* Fiscalité */}
+      {activeTab === 'stripe' && userRole === 'admin' && (
+        <>
+      {/* Configuration Stripe */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <div className="flex items-center mb-4">
-          <Receipt className="h-5 w-5 mr-2 text-gray-400 dark:text-gray-500" />
-          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Fiscalité</h2>
+          <CreditCard className="h-5 w-5 mr-2 text-gray-400 dark:text-gray-500" />
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Configuration Stripe</h2>
         </div>
         
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Type d'entreprise <span className="text-red-500">*</span>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Activer Stripe</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Activez Stripe pour permettre les paiements en ligne</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                className="sr-only peer" 
+                checked={stripeActive}
+                onChange={(e) => setStripeActive(e.target.checked)}
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
             </label>
-            <select
-              value={companyType}
-              onChange={(e) => handleCompanyTypeChange(e.target.value)}
-              disabled={loadingSettings}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-50"
-            >
-              {companyTypes.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {companyTypes.find(t => t.value === companyType)?.description}
-            </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Taux de TVA (%)
-            </label>
-            <input
-              type="number"
-              step="0.1"
-              min="0"
-              max="100"
-              value={taxRate}
-              onChange={(e) => setTaxRate(e.target.value)}
-              disabled={loadingSettings || companyType === 'auto-entrepreneur'}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-50"
-              placeholder="20.0"
-            />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {companyType === 'auto-entrepreneur' 
-                ? 'Les auto-entrepreneurs sont en franchise de TVA en dessous des seuils (0%). Le taux sera automatiquement appliqué.'
-                : 'Taux de TVA par défaut utilisé pour les factures. Conforme à la législation en vigueur.'}
-            </p>
-            {companyType === 'auto-entrepreneur' && (
-              <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <p className="text-xs text-yellow-800">
-                  <strong>Note :</strong> Les auto-entrepreneurs sont exonérés de TVA en dessous des seuils de chiffre d'affaires (176 200€ pour les prestations de services, 72 600€ pour les ventes). Au-delà, vous devez opter pour le régime réel et facturer la TVA.
+          {stripeActive && (
+            <div className="space-y-4 pt-4 border-t border-gray-200">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Clé publique Stripe (Publishable Key)
+                </label>
+                <input
+                  type="text"
+                  value={stripePublishableKey}
+                  onChange={(e) => setStripePublishableKey(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="pk_test_..."
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Commence par <code className="bg-gray-100 px-1 rounded">pk_test_</code> (test) ou <code className="bg-gray-100 px-1 rounded">pk_live_</code> (production)
                 </p>
               </div>
-            )}
-          </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Clé secrète Stripe (Secret Key)
+                </label>
+                <input
+                  type="password"
+                  value={stripeSecretKey}
+                  onChange={(e) => setStripeSecretKey(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="sk_test_... (laisser vide pour conserver la valeur actuelle)"
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Commence par <code className="bg-gray-100 px-1 rounded">sk_test_</code> (test) ou <code className="bg-gray-100 px-1 rounded">sk_live_</code> (production). 
+                  Laissez vide pour conserver la valeur actuelle.
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Secret du webhook Stripe (Webhook Secret)
+                </label>
+                <input
+                  type="password"
+                  value={stripeWebhookSecret}
+                  onChange={(e) => setStripeWebhookSecret(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="whsec_... (laisser vide pour conserver la valeur actuelle)"
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Commence par <code className="bg-gray-100 px-1 rounded">whsec_</code>. Obtenez-le depuis votre tableau de bord Stripe &gt; Développeurs &gt; Webhooks.
+                  Laissez vide pour conserver la valeur actuelle.
+                </p>
+              </div>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Note :</strong> Ces clés sont stockées de manière sécurisée dans la base de données. 
+                  Pour tester en local, utilisez Stripe CLI : <code className="bg-blue-100 px-1 rounded">stripe listen --forward-to localhost:3001/api/stripe/webhook</code>
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
         </>

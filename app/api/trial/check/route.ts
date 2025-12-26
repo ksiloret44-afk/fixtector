@@ -11,7 +11,8 @@ export async function GET() {
     }
 
     const userId = (session.user as any).id
-    const access = await canUserAccess(userId)
+    const userRole = (session.user as any).role
+    const access = await canUserAccess(userId, userRole)
     const trial = await checkTrialStatus(userId)
     const subscription = await checkSubscriptionStatus(userId)
 

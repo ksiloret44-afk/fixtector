@@ -72,10 +72,28 @@ if [ ! -f ".env.local" ]; then
     print_warning ".env.local introuvable. Créez-le avant de démarrer."
 fi
 
-# Vérifier si node_modules existe
+# Vérifier et installer les dépendances manquantes
+print_info "Vérification des dépendances..."
 if [ ! -d "node_modules" ]; then
     print_info "Installation des dépendances..."
     npm install
+    if [ $? -ne 0 ]; then
+        print_error "Erreur lors de l'installation des dépendances"
+        exit 1
+    fi
+    print_success "Dépendances installées avec succès"
+else
+    # Vérifier si des dépendances manquent
+    print_info "Vérification des dépendances manquantes..."
+    npm install --dry-run 2>&1 | grep -q "added\|removed\|changed" && {
+        print_info "Installation des dépendances manquantes..."
+        npm install
+        if [ $? -ne 0 ]; then
+            print_error "Erreur lors de l'installation des dépendances"
+            exit 1
+        fi
+        print_success "Dépendances mises à jour"
+    } || print_success "Toutes les dépendances sont installées"
 fi
 
 # Générer Prisma Client si nécessaire

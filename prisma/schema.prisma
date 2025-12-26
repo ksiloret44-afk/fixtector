@@ -44,6 +44,8 @@ model User {
   company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   customerId String? @unique // Lien vers le Customer si c'est un client
   customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  hideUpdateModal Boolean @default(false) // Ne plus afficher le popup de nouveautés
+  lastSeenUpdateVersion String? // Dernière version de mise à jour vue
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

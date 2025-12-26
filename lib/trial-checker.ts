@@ -75,12 +75,22 @@ export async function checkSubscriptionStatus(userId: string): Promise<{
 /**
  * Vérifie si l'utilisateur peut accéder à l'application
  * (a un abonnement actif OU un essai actif non expiré)
+ * Les admins ont toujours accès
  */
-export async function canUserAccess(userId: string): Promise<{
+export async function canUserAccess(userId: string, userRole?: string): Promise<{
   canAccess: boolean
-  reason: 'subscription' | 'trial' | 'expired' | 'none'
+  reason: 'subscription' | 'trial' | 'expired' | 'none' | 'admin'
   expiresAt: Date | null
 }> {
+  // Les admins ont toujours accès
+  if (userRole === 'admin') {
+    return {
+      canAccess: true,
+      reason: 'admin',
+      expiresAt: null,
+    }
+  }
+
   const subscription = await checkSubscriptionStatus(userId)
   
   if (subscription.isActive) {

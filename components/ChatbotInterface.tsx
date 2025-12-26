@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { Send, Bot, User, Loader2, Plus, Search, Building2, MessageSquare, Clock } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Send, Bot, User, Loader2, Plus, Search, Building2, MessageSquare, Clock, X, Bell } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -38,17 +38,196 @@ export default function ChatbotInterface() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [activeChat, setActiveChat] = useState<'general' | 'visitors' | 'companies' | string>('visitors')
+  const [activeChat, setActiveChat] = useState<'general' | 'visitors' | 'companies' | string>('general')
   const [companyChats, setCompanyChats] = useState<CompanyChat[]>([])
   const [visitorChats, setVisitorChats] = useState<VisitorChat[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [seenMessageIds, setSeenMessageIds] = useState<Set<string>>(new Set())
+  const previousMessagesRef = useRef<Message[]>([])
+  const [newMessagesCount, setNewMessagesCount] = useState(0)
+  const [showNotification, setShowNotification] = useState(false)
+  const [notificationMessage, setNotificationMessage] = useState('')
+  const previousCompanyChatsRef = useRef<CompanyChat[]>([])
+  const previousVisitorChatsRef = useRef<VisitorChat[]>([])
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const fetchCompanyChats = useCallback(async (currentActiveChat?: string) => {
+    try {
+      const response = await fetch('/api/chatbot/companies')
+      const data = await response.json()
+      if (response.ok && data.chats) {
+        // Détecter les nouvelles conversations ou nouveaux messages
+        if (previousCompanyChatsRef.current.length > 0) {
+          // Comparer les dernières conversations pour détecter de nouveaux messages
+          const previousLatest = previousCompanyChatsRef.current[0]
+          const currentLatest = data.chats[0]
+          
+          if (currentLatest && previousLatest) {
+            // Si le dernier message a changé et est récent (moins de 10 secondes)
+            if (currentLatest.lastMessageTime !== previousLatest.lastMessageTime) {
+              const messageTime = new Date(currentLatest.lastMessageTime).getTime()
+              const now = Date.now()
+              if (now - messageTime < 30000) { // Augmenté à 30 secondes pour être plus permissif
+                // Nouveau message détecté - seulement si on n'est pas déjà dans cette conversation
+                const currentChat = currentActiveChat || activeChat
+                if (!currentChat.startsWith(`company:${currentLatest.companyId}`)) {
+                  const message = `Nouveau message de ${currentLatest.companyName}`
+                  setNotificationMessage(message)
+                  console.log('🔔 Tentative d\'affichage notification (entreprise liste):', message)
+                  setShowNotification(true)
+                  console.log('🔔 Notification affichée (entreprise liste):', message, 'showNotification:', true)
+                  setTimeout(() => {
+                    console.log('🔔 Masquage automatique notification après 5s')
+                    setShowNotification(false)
+                  }, 5000)
+                }
+              }
+            }
+          }
+        }
+        
+        setCompanyChats(data.chats)
+        previousCompanyChatsRef.current = data.chats
+      }
+    } catch (err) {
+      console.error('Erreur:', err)
+    }
+  }, [activeChat])
+
+  const fetchVisitorChats = useCallback(async (currentActiveChat?: string) => {
+    try {
+      const response = await fetch('/api/chatbot/visitors')
+      const data = await response.json()
+      if (response.ok && data.chats) {
+        // Détecter les nouvelles conversations ou nouveaux messages
+        if (previousVisitorChatsRef.current.length > 0) {
+          // Comparer les dernières conversations pour détecter de nouveaux messages
+          const previousLatest = previousVisitorChatsRef.current[0]
+          const currentLatest = data.chats[0]
+          
+          if (currentLatest && previousLatest) {
+            // Si le dernier message a changé et est récent (moins de 10 secondes)
+            if (currentLatest.lastMessageTime !== previousLatest.lastMessageTime) {
+              const messageTime = new Date(currentLatest.lastMessageTime).getTime()
+              const now = Date.now()
+              if (now - messageTime < 30000) { // Augmenté à 30 secondes pour être plus permissif
+                // Nouveau message détecté - seulement si on n'est pas déjà dans cette conversation
+                const currentChat = currentActiveChat || activeChat
+                if (!currentChat.startsWith(`visitor:${currentLatest.email}`)) {
+                  const message = `Nouveau message de ${currentLatest.visitorName}`
+                  setNotificationMessage(message)
+                  console.log('🔔 Tentative d\'affichage notification (visiteur liste):', message)
+                  setShowNotification(true)
+                  console.log('🔔 Notification affichée (visiteur liste):', message, 'showNotification:', true)
+                  setTimeout(() => {
+                    console.log('🔔 Masquage automatique notification après 5s')
+                    setShowNotification(false)
+                  }, 5000)
+                }
+              }
+            }
+          }
+        }
+        
+        setVisitorChats(data.chats)
+        previousVisitorChatsRef.current = data.chats
+      }
+    } catch (err) {
+      console.error('Erreur:', err)
+    }
+  }, [])
+
+  const fetchVisitorMessages = useCallback(async (email: string) => {
+    try {
+      const response = await fetch(`/api/chatbot/messages?visitorEmail=${encodeURIComponent(email)}`)
+      const data = await response.json()
+      if (response.ok && data.messages) {
+        const previousIds = new Set(previousMessagesRef.current.map(m => m.id))
+        const currentIds = new Set<string>(data.messages.map((m: Message) => m.id))
+        const newMessageIds = Array.from<string>(currentIds).filter(id => !previousIds.has(id))
+        
+        // Si c'est le premier chargement, marquer tous les messages existants comme vus
+        if (previousMessagesRef.current.length === 0) {
+          // Marquer tous les messages actuels comme vus (ce sont les messages initiaux)
+          setSeenMessageIds(new Set(data.messages.map((m: Message) => m.id)))
+        } else if (newMessageIds.length > 0) {
+          // Nouveaux messages détectés - afficher notification et surbrillance
+          setNewMessagesCount(prev => prev + newMessageIds.length)
+          const visitorName = visitorChats.find(v => v.email === email)?.visitorName || 'un visiteur'
+          const message = `${newMessageIds.length} nouveau${newMessageIds.length > 1 ? 'x' : ''} message${newMessageIds.length > 1 ? 's' : ''} de ${visitorName}`
+          setNotificationMessage(message)
+          console.log('🔔 Tentative d\'affichage notification (visiteur conversation):', message, 'newMessageIds:', newMessageIds)
+          setShowNotification(true)
+          console.log('🔔 Notification affichée (visiteur conversation):', message, 'showNotification:', true)
+          // Faire défiler vers le bas pour voir les nouveaux messages
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+          }, 200)
+          // Masquer la notification après 5 secondes
+          setTimeout(() => {
+            console.log('🔔 Masquage automatique notification après 5s')
+            setShowNotification(false)
+          }, 5000)
+        }
+        
+        setMessages(data.messages)
+        previousMessagesRef.current = data.messages
+      }
+    } catch (err) {
+      console.error('Erreur:', err)
+    }
+  }, [])
+
+  const fetchCompanyMessages = useCallback(async (companyId: string) => {
+    try {
+      const response = await fetch(`/api/chatbot/messages?companyId=${companyId}`)
+      const data = await response.json()
+      if (response.ok && data.messages) {
+        const previousIds = new Set(previousMessagesRef.current.map(m => m.id))
+        const currentIds = new Set<string>(data.messages.map((m: Message) => m.id))
+        const newMessageIds = Array.from<string>(currentIds).filter(id => !previousIds.has(id))
+        
+        // Si c'est le premier chargement, marquer tous les messages existants comme vus
+        if (previousMessagesRef.current.length === 0) {
+          // Marquer tous les messages actuels comme vus (ce sont les messages initiaux)
+          setSeenMessageIds(new Set(data.messages.map((m: Message) => m.id)))
+        } else if (newMessageIds.length > 0) {
+          // Nouveaux messages détectés - afficher notification et surbrillance
+          setNewMessagesCount(prev => prev + newMessageIds.length)
+          const companyName = companyChats.find(c => c.companyId === companyId)?.companyName || 'une entreprise'
+          const message = `${newMessageIds.length} nouveau${newMessageIds.length > 1 ? 'x' : ''} message${newMessageIds.length > 1 ? 's' : ''} de ${companyName}`
+          setNotificationMessage(message)
+          console.log('🔔 Tentative d\'affichage notification (entreprise conversation):', message, 'newMessageIds:', newMessageIds)
+          setShowNotification(true)
+          console.log('🔔 Notification affichée (entreprise conversation):', message, 'showNotification:', true)
+          // Faire défiler vers le bas pour voir les nouveaux messages
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+          }, 200)
+          // Masquer la notification après 5 secondes
+          setTimeout(() => {
+            console.log('🔔 Masquage automatique notification après 5s')
+            setShowNotification(false)
+          }, 5000)
+        }
+        
+        setMessages(data.messages)
+        previousMessagesRef.current = data.messages
+      }
+    } catch (err) {
+      console.error('Erreur:', err)
+    }
+  }, [])
 
   useEffect(() => {
     fetchCompanyChats()
     fetchVisitorChats()
     
-    if (activeChat === 'visitors' || activeChat === 'companies') {
+    if (activeChat === 'general' || activeChat === 'visitors' || activeChat === 'companies') {
       // Ne rien faire, juste afficher la liste
       setMessages([])
     } else if (activeChat.startsWith('visitor:')) {
@@ -63,61 +242,91 @@ export default function ChatbotInterface() {
       // Par défaut, ne rien afficher
       setMessages([])
     }
-  }, [activeChat])
+    
+    // Réinitialiser les messages vus et le compteur quand on change de conversation
+    setSeenMessageIds(new Set())
+    previousMessagesRef.current = []
+    setNewMessagesCount(0)
+    // Réinitialiser aussi les références des listes de chats
+    previousCompanyChatsRef.current = []
+    previousVisitorChatsRef.current = []
+  }, [activeChat, fetchVisitorChats, fetchVisitorMessages, fetchCompanyChats, fetchCompanyMessages])
+
+  // Rafraîchir automatiquement les listes et messages toutes les 3 secondes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Rafraîchir les listes (passer activeChat pour la détection)
+      fetchCompanyChats(activeChat)
+      fetchVisitorChats(activeChat)
+      
+      // Rafraîchir les messages selon le chat actif
+      if (activeChat.startsWith('visitor:')) {
+        const email = activeChat.replace('visitor:', '')
+        fetchVisitorMessages(email)
+      } else if (activeChat.startsWith('company:')) {
+        const companyId = activeChat.replace('company:', '')
+        fetchCompanyMessages(companyId)
+      }
+    }, 3000) // Vérifier toutes les 3 secondes
+
+    return () => clearInterval(interval)
+  }, [activeChat, fetchVisitorChats, fetchVisitorMessages, fetchCompanyChats, fetchCompanyMessages])
 
   useEffect(() => {
     scrollToBottom()
   }, [messages])
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
+  // Marquer les nouveaux messages comme vus après un délai et réinitialiser le compteur
+  useEffect(() => {
+    if (messages.length === 0) return
 
-  const fetchCompanyChats = async () => {
-    try {
-      const response = await fetch('/api/chatbot/companies')
-      const data = await response.json()
-      if (response.ok && data.chats) {
-        setCompanyChats(data.chats)
-      }
-    } catch (err) {
-      console.error('Erreur:', err)
+    // Identifier les nouveaux messages (ceux qui ne sont pas encore marqués comme vus)
+    const newMessages = messages.filter(msg => !seenMessageIds.has(msg.id))
+    
+    if (newMessages.length > 0) {
+      // Marquer les nouveaux messages comme vus après 8 secondes (plus de temps pour voir)
+      const timer = setTimeout(() => {
+        setSeenMessageIds(prev => {
+          const updated = new Set(prev)
+          newMessages.forEach(msg => updated.add(msg.id))
+          return updated
+        })
+        // Réinitialiser le compteur de notification
+        setNewMessagesCount(0)
+      }, 8000)
+
+      return () => clearTimeout(timer)
     }
-  }
+  }, [messages, seenMessageIds])
 
-  const fetchVisitorChats = async () => {
-    try {
-      const response = await fetch('/api/chatbot/visitors')
-      const data = await response.json()
-      if (response.ok && data.chats) {
-        setVisitorChats(data.chats)
-      }
-    } catch (err) {
-      console.error('Erreur:', err)
+  const handleCloseVisitorSession = async () => {
+    if (!activeChat.startsWith('visitor:')) return
+    
+    const email = activeChat.replace('visitor:', '')
+    const visitorName = visitorChats.find(v => `visitor:${v.email}` === activeChat)?.visitorName || 'ce visiteur'
+    
+    if (!confirm(`Voulez-vous vraiment fermer et réinitialiser la session de ${visitorName} ? Tous les messages seront supprimés.`)) {
+      return
     }
-  }
 
-  const fetchVisitorMessages = async (email: string) => {
     try {
-      const response = await fetch(`/api/chatbot/messages?visitorEmail=${encodeURIComponent(email)}`)
-      const data = await response.json()
-      if (response.ok && data.messages) {
-        setMessages(data.messages)
+      const response = await fetch(`/api/chatbot/visitor/${encodeURIComponent(email)}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        // Revenir à la liste des visiteurs
+        setActiveChat('general')
+        setMessages([])
+        // Rafraîchir la liste des visiteurs
+        fetchVisitorChats()
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Erreur lors de la suppression de la session')
       }
     } catch (err) {
       console.error('Erreur:', err)
-    }
-  }
-
-  const fetchCompanyMessages = async (companyId: string) => {
-    try {
-      const response = await fetch(`/api/chatbot/messages?companyId=${companyId}`)
-      const data = await response.json()
-      if (response.ok && data.messages) {
-        setMessages(data.messages)
-      }
-    } catch (err) {
-      console.error('Erreur:', err)
+      alert('Erreur lors de la suppression de la session')
     }
   }
 
@@ -125,16 +334,7 @@ export default function ChatbotInterface() {
     e.preventDefault()
     if (!input.trim() || loading) return
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input.trim(),
-      createdAt: new Date().toISOString(),
-      companyId: activeChat !== 'general' ? activeChat : null,
-      isGeneral: activeChat === 'general',
-    }
-
-    setMessages(prev => [...prev, userMessage])
+    const messageContent = input.trim()
     setInput('')
     setLoading(true)
 
@@ -148,29 +348,30 @@ export default function ChatbotInterface() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          message: input.trim(),
+          message: messageContent,
           companyId: companyId,
           visitorEmail: visitorEmail,
-          isGeneral: isVisitorChat, // Les visiteurs sont des messages généraux
+          isGeneral: isVisitorChat, // Les visiteurs sont des messages généraux, les entreprises non
         }),
       })
 
       const data = await response.json()
 
-      if (response.ok && data.response) {
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: data.response,
-          createdAt: new Date().toISOString(),
-          companyId: companyId,
-          isGeneral: isVisitorChat,
-        }
-        setMessages(prev => [...prev, assistantMessage])
-        if (isCompanyChat) {
-          fetchCompanyChats() // Rafraîchir la liste
-        } else if (isVisitorChat) {
+      if (response.ok) {
+        // Recharger les messages depuis le serveur pour avoir la version à jour
+        // Cela inclura le message de l'admin qui vient d'être envoyé
+        if (isVisitorChat) {
+          const email = activeChat.replace('visitor:', '')
+          setTimeout(() => {
+            fetchVisitorMessages(email)
+          }, 500)
           fetchVisitorChats() // Rafraîchir la liste des visiteurs
+        } else if (isCompanyChat) {
+          const companyId = activeChat.replace('company:', '')
+          setTimeout(() => {
+            fetchCompanyMessages(companyId)
+          }, 500)
+          fetchCompanyChats() // Rafraîchir la liste
         }
       } else {
         throw new Error(data.error || 'Erreur lors de l\'envoi du message')
@@ -200,20 +401,81 @@ export default function ChatbotInterface() {
     chat.email.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  // Fonction de test pour forcer l'affichage de la notification
+  const testNotification = () => {
+    setNotificationMessage('Test de notification - Nouveau message de Test User')
+    setShowNotification(true)
+    console.log('🔔 Test notification - showNotification:', true)
+    setTimeout(() => setShowNotification(false), 5000)
+  }
+
   return (
-    <div className="bg-white dark:bg-gray-800 shadow rounded-lg flex" style={{ height: '700px' }}>
+    <>
+      {/* Notification toast en haut à droite */}
+      {showNotification && (
+        <div 
+          className="fixed top-4 right-4 z-[10000]"
+          style={{
+            animation: 'slideInFromRight 0.4s ease-out',
+            transform: 'translateX(0)',
+            opacity: 1,
+          }}
+        >
+          <div className="bg-yellow-400 dark:bg-yellow-500 text-yellow-900 dark:text-yellow-900 px-4 py-3 rounded-lg shadow-2xl border-2 border-yellow-500 dark:border-yellow-400 flex items-center gap-3 min-w-[300px] max-w-[400px]">
+            <Bell className="h-5 w-5 flex-shrink-0 animate-bounce text-yellow-900" />
+            <div className="flex-1">
+              <p className="text-sm font-bold">🔔 Nouveau message !</p>
+              <p className="text-xs mt-1 font-medium">{notificationMessage}</p>
+            </div>
+            <button
+              onClick={() => {
+                console.log('🔔 Fermeture notification')
+                setShowNotification(false)
+              }}
+              className="text-yellow-900 hover:text-yellow-800 transition-colors flex-shrink-0"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Style pour l'animation de la notification */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes slideInFromRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+      `}} />
+
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg flex" style={{ height: '700px' }}>
       {/* Sidebar gauche - Liste des entreprises */}
       <div className="w-80 border-r border-gray-200 dark:border-gray-700 flex flex-col">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Chats</h2>
-            <button
-              onClick={() => setActiveChat('general')}
-              className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
-              title="Nouvelle conversation générale"
-            >
-              <Plus className="h-5 w-5" />
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={testNotification}
+                className="p-2 text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 dark:hover:text-yellow-300 rounded-md hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+                title="Tester la notification"
+              >
+                <Bell className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setActiveChat('general')}
+                className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                title="Nouvelle conversation générale"
+              >
+                <Plus className="h-5 w-5" />
+              </button>
+            </div>
           </div>
           
           {/* Onglets */}
@@ -231,14 +493,10 @@ export default function ChatbotInterface() {
             </button>
             <button
               onClick={() => {
-                if (activeChat === 'general' || activeChat === 'companies') {
-                  setActiveChat('companies')
-                }
+                setActiveChat('companies')
               }}
               className={`flex-1 px-3 py-2 text-sm font-medium rounded-md ${
-                activeChat !== 'general' && activeChat !== 'companies'
-                  ? 'bg-primary-600 text-white'
-                  : activeChat === 'companies'
+                activeChat.startsWith('company:') || activeChat === 'companies'
                   ? 'bg-primary-600 text-white'
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
@@ -263,7 +521,7 @@ export default function ChatbotInterface() {
 
         {/* Liste des conversations */}
         <div className="flex-1 overflow-y-auto">
-          {activeChat === 'visitors' ? (
+          {activeChat === 'general' || activeChat === 'visitors' ? (
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
               {filteredVisitorChats.length === 0 ? (
                 <div className="p-8 text-center text-gray-500 dark:text-gray-400">
@@ -395,26 +653,62 @@ export default function ChatbotInterface() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Page d'accueil - Demandes d'information</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">Messages des visiteurs de la page d'accueil (landing page)</p>
             </div>
+          ) : activeChat.startsWith('visitor:') ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    {visitorChats.find(v => `visitor:${v.email}` === activeChat)?.visitorName || 'Visiteur'}
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {visitorChats.find(v => `visitor:${v.email}` === activeChat)?.email || ''}
+                  </p>
+                </div>
+                {newMessagesCount > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-yellow-400 dark:bg-yellow-500 text-yellow-900 dark:text-yellow-900 rounded-full animate-pulse">
+                    <span className="text-sm font-bold">{newMessagesCount}</span>
+                    <span className="text-xs">nouveau{newMessagesCount > 1 ? 'x' : ''}</span>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={handleCloseVisitorSession}
+                className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                title="Fermer et réinitialiser la session"
+              >
+                Fermer la session
+              </button>
+            </div>
           ) : activeChat === 'companies' ? (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Sélectionnez une entreprise</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">Choisissez une entreprise enregistrée pour voir ses demandes d'aide</p>
             </div>
-          ) : (
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                {companyChats.find(c => c.companyId === activeChat)?.companyName || 'Entreprise'}
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Demande d'aide de l'entreprise enregistrée</p>
+          ) : activeChat.startsWith('company:') ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    {companyChats.find(c => `company:${c.companyId}` === activeChat)?.companyName || 'Entreprise'}
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Demande d'aide de l'entreprise enregistrée</p>
+                </div>
+                {newMessagesCount > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-yellow-400 dark:bg-yellow-500 text-yellow-900 dark:text-yellow-900 rounded-full animate-pulse">
+                    <span className="text-sm font-bold">{newMessagesCount}</span>
+                    <span className="text-xs">nouveau{newMessagesCount > 1 ? 'x' : ''}</span>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900">
-          {activeChat === 'visitors' || activeChat === 'companies' ? (
+          {activeChat === 'general' || activeChat === 'visitors' || activeChat === 'companies' ? (
             <div className="text-center text-gray-500 dark:text-gray-400 mt-8">
-              {activeChat === 'visitors' ? (
+              {activeChat === 'general' || activeChat === 'visitors' ? (
                 <>
                   <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
                   <p className="font-medium">Sélectionnez un visiteur</p>
@@ -445,33 +739,48 @@ export default function ChatbotInterface() {
               </p>
             </div>
           ) : (
-            messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex items-start space-x-3 ${
-                  message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''
-                }`}
-              >
+            messages.map((message) => {
+              const isNewMessage = !seenMessageIds.has(message.id)
+              return (
                 <div
-                  className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${
-                    message.role === 'user'
-                      ? 'bg-primary-600'
-                      : 'bg-gray-200 dark:bg-gray-700'
+                  key={message.id}
+                  className={`flex items-start space-x-3 transition-all duration-500 ${
+                    message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''
                   }`}
                 >
-                  {message.role === 'user' ? (
-                    <User className="h-4 w-4 text-white" />
-                  ) : (
-                    <Bot className="h-4 w-4 text-gray-600 dark:text-gray-300" />
-                  )}
-                </div>
-                <div
-                  className={`flex-1 rounded-lg p-3 max-w-2xl ${
-                    message.role === 'user'
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700'
-                  }`}
-                >
+                  <div
+                    className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                      message.role === 'user'
+                        ? 'bg-primary-600'
+                        : 'bg-gray-200 dark:bg-gray-700'
+                    } ${isNewMessage ? 'ring-2 ring-yellow-400 dark:ring-yellow-500' : ''}`}
+                  >
+                    {message.role === 'user' ? (
+                      <User className="h-4 w-4 text-white" />
+                    ) : (
+                      <Bot className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                    )}
+                  </div>
+                  <div
+                    className={`flex-1 rounded-lg p-3 max-w-2xl transition-all duration-500 relative ${
+                      message.role === 'user'
+                        ? isNewMessage 
+                          ? 'bg-yellow-300 text-gray-900 border-3 border-yellow-500 ring-4 ring-yellow-400 shadow-2xl'
+                          : 'bg-primary-600 text-white'
+                        : isNewMessage
+                        ? 'bg-yellow-200 dark:bg-yellow-800/50 text-gray-900 dark:text-gray-100 border-3 border-yellow-500 dark:border-yellow-400 ring-4 ring-yellow-400 dark:ring-yellow-500 shadow-2xl'
+                        : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700'
+                    }`}
+                    style={isNewMessage ? {
+                      animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                      boxShadow: '0 0 0 4px rgba(250, 204, 21, 0.3), 0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                    } : {}}
+                  >
+                    {isNewMessage && (
+                      <div className="absolute -top-2 -right-2 bg-yellow-400 dark:bg-yellow-500 text-yellow-900 dark:text-yellow-900 text-xs font-bold px-2 py-1 rounded-full animate-bounce">
+                        NOUVEAU
+                      </div>
+                    )}
                   {/* Afficher les infos du visiteur pour les messages généraux */}
                   {message.role === 'user' && message.isGeneral && message.metadata && (() => {
                     try {
@@ -509,7 +818,8 @@ export default function ChatbotInterface() {
                   </p>
                 </div>
               </div>
-            ))
+              )
+            })
           )}
           {loading && (
             <div className="flex items-start space-x-3">
@@ -532,18 +842,20 @@ export default function ChatbotInterface() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={
-                activeChat === 'general'
+                activeChat === 'general' || activeChat === 'visitors'
+                  ? "Sélectionnez un visiteur pour répondre..."
+                  : activeChat.startsWith('visitor:')
                   ? "Répondez aux questions de la page d'accueil..."
                   : activeChat === 'companies'
                   ? "Sélectionnez une entreprise pour répondre..."
                   : "Répondez à la demande d'aide de l'entreprise..."
               }
               className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              disabled={loading || activeChat === 'companies'}
+              disabled={loading || activeChat === 'companies' || activeChat === 'general' || activeChat === 'visitors'}
             />
             <button
               type="submit"
-              disabled={loading || !input.trim() || activeChat === 'companies'}
+              disabled={loading || !input.trim() || activeChat === 'companies' || activeChat === 'general' || activeChat === 'visitors'}
               className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send className="h-5 w-5" />
@@ -552,5 +864,6 @@ export default function ChatbotInterface() {
         </form>
       </div>
     </div>
+    </>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Star, CheckCircle, XCircle, Copy, Mail, ExternalLink, Eye, EyeOff } from 'lucide-react'
+import { Star, CheckCircle, XCircle, Copy, Mail, ExternalLink, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -12,6 +12,9 @@ interface Review {
   customerName: string | null
   reviewToken: string
   submittedAt: string | null
+  isApproved: boolean | null
+  approvedAt: string | null
+  rejectedAt: string | null
   repair: {
     deviceType: string
     brand: string
@@ -27,7 +30,8 @@ interface Review {
 export default function ReviewsManagement() {
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'submitted'>('all')
+  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'submitted'>('all')
+  const [processingId, setProcessingId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchReviews()
@@ -58,10 +62,43 @@ export default function ReviewsManagement() {
     alert('Lien copié dans le presse-papier !')
   }
 
+  const moderateReview = async (reviewId: string, action: 'approve' | 'reject') => {
+    if (!confirm(action === 'approve' 
+      ? 'Êtes-vous sûr de vouloir approuver cet avis ? Il sera visible publiquement.'
+      : 'Êtes-vous sûr de vouloir rejeter cet avis ? Il ne sera pas visible publiquement.')) {
+      return
+    }
+
+    setProcessingId(reviewId)
+    try {
+      const response = await fetch(`/api/reviews/${reviewId}/moderate`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de la modération')
+      }
+
+      // Recharger les avis
+      await fetchReviews()
+    } catch (err: any) {
+      alert(err.message || 'Une erreur est survenue')
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
   const filteredReviews = reviews.filter((review) => {
     if (filter === 'pending') return review.rating === 0 || !review.submittedAt
-    if (filter === 'submitted') return review.rating > 0 && review.submittedAt
-    if (filter === 'approved') return review.rating > 0 && review.submittedAt
+    if (filter === 'submitted') return review.rating > 0 && review.submittedAt && review.isApproved === null
+    if (filter === 'approved') return review.isApproved === true
+    if (filter === 'rejected') return review.isApproved === false
     return true
   })
 
@@ -110,6 +147,16 @@ export default function ReviewsManagement() {
             Soumis ({reviews.filter(r => r.rating > 0 && r.submittedAt).length})
           </button>
           <button
+            onClick={() => setFilter('submitted')}
+            className={`px-4 py-2 rounded-md text-sm font-medium ${
+              filter === 'submitted'
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            En attente de modération ({reviews.filter(r => r.rating > 0 && r.submittedAt && r.isApproved === null).length})
+          </button>
+          <button
             onClick={() => setFilter('approved')}
             className={`px-4 py-2 rounded-md text-sm font-medium ${
               filter === 'approved'
@@ -117,7 +164,17 @@ export default function ReviewsManagement() {
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            Soumis ({reviews.filter(r => r.rating > 0 && r.submittedAt).length})
+            Approuvés ({reviews.filter(r => r.isApproved === true).length})
+          </button>
+          <button
+            onClick={() => setFilter('rejected')}
+            className={`px-4 py-2 rounded-md text-sm font-medium ${
+              filter === 'rejected'
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Rejetés ({reviews.filter(r => r.isApproved === false).length})
           </button>
         </div>
       </div>
@@ -130,8 +187,9 @@ export default function ReviewsManagement() {
             <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Aucun avis</h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {filter === 'pending' && 'Aucune demande d\'avis en attente'}
-              {filter === 'submitted' && 'Aucun avis soumis en attente d\'approbation'}
+              {filter === 'submitted' && 'Aucun avis soumis en attente de modération'}
               {filter === 'approved' && 'Aucun avis approuvé'}
+              {filter === 'rejected' && 'Aucun avis rejeté'}
               {filter === 'all' && 'Commencez par demander un avis à vos clients'}
             </p>
           </div>
@@ -159,9 +217,22 @@ export default function ReviewsManagement() {
                           En attente
                         </span>
                       )}
-                      {review.rating > 0 && review.submittedAt && (
+                      {review.rating > 0 && review.submittedAt && review.isApproved === null && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          En attente de modération
+                        </span>
+                      )}
+                      {review.isApproved === true && (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Soumis
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Approuvé
+                        </span>
+                      )}
+                      {review.isApproved === false && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          <XCircle className="h-3 w-3 mr-1" />
+                          Rejeté
                         </span>
                       )}
                     </div>
@@ -181,9 +252,21 @@ export default function ReviewsManagement() {
                         {review.comment && (
                           <p className="text-sm text-gray-700 mb-2 italic">"{review.comment}"</p>
                         )}
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Soumis le {format(new Date(review.submittedAt!), 'dd MMMM yyyy à HH:mm', { locale: fr })}
-                        </p>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                          <p>
+                            Soumis le {format(new Date(review.submittedAt!), 'dd MMMM yyyy à HH:mm', { locale: fr })}
+                          </p>
+                          {review.isApproved === true && review.approvedAt && (
+                            <p className="text-green-600">
+                              Approuvé le {format(new Date(review.approvedAt), 'dd MMMM yyyy à HH:mm', { locale: fr })}
+                            </p>
+                          )}
+                          {review.isApproved === false && review.rejectedAt && (
+                            <p className="text-red-600">
+                              Rejeté le {format(new Date(review.rejectedAt), 'dd MMMM yyyy à HH:mm', { locale: fr })}
+                            </p>
+                          )}
+                        </div>
                       </>
                     ) : (
                       <>
@@ -213,15 +296,73 @@ export default function ReviewsManagement() {
 
                   <div className="flex items-center space-x-2 ml-4">
                     {review.rating > 0 && review.submittedAt && (
-                      <a
-                        href={`/review/${review.reviewToken}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      >
-                        <ExternalLink className="h-3 w-3 mr-1" />
-                        Voir
-                      </a>
+                      <>
+                        <a
+                          href={`/review/${review.reviewToken}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          Voir
+                        </a>
+                        {review.isApproved === null && (
+                          <>
+                            <button
+                              onClick={() => moderateReview(review.id, 'approve')}
+                              disabled={processingId === review.id}
+                              className="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50"
+                            >
+                              {processingId === review.id ? (
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              ) : (
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                              )}
+                              Approuver
+                            </button>
+                            <button
+                              onClick={() => moderateReview(review.id, 'reject')}
+                              disabled={processingId === review.id}
+                              className="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50"
+                            >
+                              {processingId === review.id ? (
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              ) : (
+                                <XCircle className="h-3 w-3 mr-1" />
+                              )}
+                              Rejeter
+                            </button>
+                          </>
+                        )}
+                        {review.isApproved === true && (
+                          <button
+                            onClick={() => moderateReview(review.id, 'reject')}
+                            disabled={processingId === review.id}
+                            className="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50"
+                          >
+                            {processingId === review.id ? (
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            ) : (
+                              <XCircle className="h-3 w-3 mr-1" />
+                            )}
+                            Rejeter
+                          </button>
+                        )}
+                        {review.isApproved === false && (
+                          <button
+                            onClick={() => moderateReview(review.id, 'approve')}
+                            disabled={processingId === review.id}
+                            className="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50"
+                          >
+                            {processingId === review.id ? (
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            ) : (
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                            )}
+                            Approuver
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

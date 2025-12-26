@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { getMainPrisma } from '@/lib/db-manager'
 import Navigation from '@/components/Navigation'
 import ProfileForm from '@/components/ProfileForm'
+import BackupCodesManager from '@/components/BackupCodesManager'
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions)
@@ -39,9 +40,10 @@ export default async function ProfilePage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation />
       <main className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Mon profil</h1>
+        <div className="px-4 py-6 sm:px-0 space-y-6">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Mon profil</h1>
           <ProfileForm user={user} />
+          <BackupCodesManager />
         </div>
       </main>
     </div>

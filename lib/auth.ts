@@ -21,11 +21,67 @@ export const authOptions: NextAuthOptions = {
       name: 'Credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' }
+        password: { label: 'Password', type: 'password' },
+        twoFactorToken: { label: '2FA Token', type: 'text' }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          console.log('Missing credentials')
+        if (!credentials?.email) {
+          console.log('Missing email')
+          return null
+        }
+
+        // Si un token 2FA est fourni, on skip la vérification du mot de passe
+        if (credentials.twoFactorToken) {
+          try {
+            const mainPrisma = getMainPrisma()
+            const user = await mainPrisma.user.findUnique({
+              where: { id: credentials.twoFactorToken },
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                role: true,
+                mustChangePassword: true,
+                theme: true,
+                approved: true,
+                suspended: true,
+              }
+            })
+
+            if (!user || user.email !== credentials.email) {
+              console.log('Invalid 2FA token or email mismatch')
+              return null
+            }
+
+            // Vérifier si l'utilisateur est approuvé
+            if (!user.approved) {
+              console.log('User not approved:', credentials.email)
+              throw new Error('Compte en attente d\'approbation')
+            }
+
+            // Vérifier si le compte est suspendu
+            if (user.suspended) {
+              console.log('User suspended:', credentials.email)
+              throw new Error('COMPTE_SUSPENDU')
+            }
+
+            return {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              role: user.role,
+              mustChangePassword: user.mustChangePassword,
+              theme: user.theme || 'light',
+            }
+          } catch (error) {
+            console.error('Auth error with 2FA:', error)
+            return null
+          }
+        }
+
+        // Vérification normale avec mot de passe
+        if (!credentials?.password) {
+          console.log('Missing password')
           return null
         }
 

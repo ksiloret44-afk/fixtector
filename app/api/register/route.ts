@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     // Hasher le mot de passe
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Créer l'utilisateur avec approbation automatique et essai de 24h
+    // Créer l'utilisateur avec approbation automatique et abonnement actif par défaut
     const user = await prisma.user.create({
       data: {
         name,
@@ -40,12 +40,14 @@ export async function POST(request: Request) {
         role: 'user',
         approved: true, // Auto-approuvé automatiquement
         approvedAt: new Date(),
-        trial: {
+        subscription: {
           create: {
-            startedAt: new Date(),
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 heures
-            isActive: true,
-            welcomeMessageShown: false,
+            status: 'active',
+            plan: 'standard',
+            currentPeriodStart: new Date(),
+            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 jours
+            lastPaymentStatus: 'succeeded',
+            lastPaymentDate: new Date(),
           },
         },
       },
@@ -53,7 +55,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       { 
-        message: 'Compte créé avec succès ! Votre essai de 24h a commencé.',
+        message: 'Compte créé avec succès ! Votre compte est actif.',
         userId: user.id,
       },
       { status: 201 }

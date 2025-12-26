@@ -109,3 +109,5 @@ echo "4. Rebuilder: sudo -u fixtector bash -c 'cd $APP_DIR && npm run build'"
 
 
 
+
+

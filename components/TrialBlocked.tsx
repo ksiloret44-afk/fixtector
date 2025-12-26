@@ -56,13 +56,13 @@ export default function TrialBlocked() {
           veuillez vous abonner à notre service.
         </p>
         <div className="space-y-4">
-          <Link
-            href="/subscription"
+          <button
+            onClick={() => { window.location.href = '/subscribe' }}
             className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
           >
             <CreditCard className="h-5 w-5 mr-2" />
-            Voir les abonnements
-          </Link>
+            Souscrire à un abonnement (19,99€/mois)
+          </button>
           <Link
             href="/logout"
             className="w-full inline-flex items-center justify-center px-6 py-3 border border-gray-300 rounded-md shadow-sm text-base font-medium text-gray-700 bg-white hover:bg-gray-50"

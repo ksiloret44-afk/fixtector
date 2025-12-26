@@ -46,34 +46,38 @@ export async function POST(request: Request) {
       }
     }
 
-    // Sauvegarder le message de l'utilisateur
-    await prisma.chatbotMessage.create({
+    // Déterminer si le message est général ou spécifique à une entreprise
+    // Si companyId est fourni, c'est un message d'entreprise (isGeneral = false)
+    // Si visitorEmail est fourni, c'est un message de visiteur (isGeneral = true)
+    // Sinon, utiliser la valeur par défaut
+    let finalIsGeneral = isGeneral
+    if (companyId) {
+      finalIsGeneral = false // Les messages d'entreprise ne sont pas généraux
+    } else if (visitorEmail) {
+      finalIsGeneral = true // Les messages de visiteurs sont généraux
+    }
+
+    // Quand l'admin répond, son message est directement une réponse (assistant)
+    // Pas besoin de générer une réponse automatique, l'admin écrit directement sa réponse
+    const createdMessage = await prisma.chatbotMessage.create({
       data: {
         userId,
-        role: 'user',
+        role: 'assistant', // Les messages de l'admin sont des réponses (assistant)
         content: message,
         companyId: companyId || null,
-        isGeneral: isGeneral === true || visitorEmail !== undefined,
+        isGeneral: finalIsGeneral,
         metadata: metadata,
       },
     })
 
-    // Générer une réponse simple (à améliorer avec une vraie IA plus tard)
-    const response = generateResponse(message)
-
-    // Sauvegarder la réponse
-    await prisma.chatbotMessage.create({
-      data: {
-        userId,
-        role: 'assistant',
-        content: response,
-        companyId: companyId || null,
-        isGeneral: isGeneral === true || visitorEmail !== undefined,
-        metadata: metadata,
-      },
+    console.log('Message admin créé:', {
+      id: createdMessage.id,
+      companyId: createdMessage.companyId,
+      isGeneral: createdMessage.isGeneral,
+      role: createdMessage.role,
     })
 
-    return NextResponse.json({ response })
+    return NextResponse.json({ response: message })
   } catch (error) {
     console.error('Erreur lors du chat:', error)
     return NextResponse.json(
@@ -83,39 +87,4 @@ export async function POST(request: Request) {
   }
 }
 
-function generateResponse(message: string): string {
-  const lowerMessage = message.toLowerCase()
-
-  // Réponses simples basées sur des mots-clés
-  if (lowerMessage.includes('bonjour') || lowerMessage.includes('salut') || lowerMessage.includes('hello')) {
-    return 'Bonjour ! Comment puis-je vous aider aujourd\'hui avec FixTector ?'
-  }
-
-  if (lowerMessage.includes('aide') || lowerMessage.includes('help')) {
-    return 'Je peux vous aider avec :\n- Les fonctionnalités de FixTector\n- La gestion des réparations\n- Les abonnements et essais\n- Les paramètres\n\nQue souhaitez-vous savoir ?'
-  }
-
-  if (lowerMessage.includes('réparation') || lowerMessage.includes('repair')) {
-    return 'FixTector permet de gérer vos réparations de A à Z : création de tickets, suivi des statuts, gestion des pièces, photos, devis et factures. Vous pouvez créer une nouvelle réparation depuis le menu "Réparations".'
-  }
-
-  if (lowerMessage.includes('abonnement') || lowerMessage.includes('subscription') || lowerMessage.includes('essai')) {
-    return 'FixTector propose un essai gratuit de 24h. Après l\'essai, vous pouvez vous abonner pour continuer à utiliser toutes les fonctionnalités. Consultez la page "Abonnements" pour plus d\'informations.'
-  }
-
-  if (lowerMessage.includes('client') || lowerMessage.includes('customer')) {
-    return 'Vous pouvez gérer vos clients depuis le menu "Clients". Ajoutez des clients, consultez leur historique de réparations, et gérez leurs informations de contact.'
-  }
-
-  if (lowerMessage.includes('facture') || lowerMessage.includes('invoice') || lowerMessage.includes('devis') || lowerMessage.includes('quote')) {
-    return 'FixTector génère automatiquement des devis et factures conformes à la législation européenne. Les documents incluent toutes les mentions légales obligatoires et peuvent être exportés en PDF.'
-  }
-
-  if (lowerMessage.includes('merci') || lowerMessage.includes('thanks')) {
-    return 'De rien ! N\'hésitez pas si vous avez d\'autres questions.'
-  }
-
-  // Réponse par défaut
-  return 'Je comprends votre question. Pour une assistance plus détaillée, consultez la documentation ou contactez le support. Je peux vous aider avec les fonctionnalités principales de FixTector : réparations, clients, stock, devis, factures, et abonnements.'
-}
 

@@ -18,10 +18,12 @@ export async function GET() {
     const prisma = getMainPrisma()
 
     // Récupérer tous les messages généraux (page d'accueil)
+    // Exclure les messages des clients connectés (userId non null)
     const generalMessages = await prisma.chatbotMessage.findMany({
       where: {
         isGeneral: true,
         role: 'user', // Seulement les messages des visiteurs
+        userId: null, // Exclure les messages des clients connectés
       },
       select: {
         id: true,
@@ -43,23 +45,26 @@ export async function GET() {
         const email = metadata.email
 
         if (!email) continue // Ignorer les messages sans email
+        
+        // Normaliser l'email pour éviter les doublons
+        const normalizedEmail = email.toLowerCase().trim()
 
-        if (!visitorMap.has(email)) {
-          visitorMap.set(email, {
-            visitorId: email, // Utiliser l'email comme identifiant unique
+        if (!visitorMap.has(normalizedEmail)) {
+          visitorMap.set(normalizedEmail, {
+            visitorId: normalizedEmail, // Utiliser l'email normalisé comme identifiant unique
             visitorName: metadata.firstName && metadata.lastName
               ? `${metadata.firstName} ${metadata.lastName}`
               : metadata.firstName || metadata.lastName || 'Visiteur anonyme',
             firstName: metadata.firstName || '',
             lastName: metadata.lastName || '',
-            email: email,
+            email: normalizedEmail,
             lastMessage: msg.content.substring(0, 100) + (msg.content.length > 100 ? '...' : ''),
             lastMessageTime: msg.createdAt.toISOString(),
             unreadCount: 0, // À implémenter si nécessaire
           })
         } else {
           // Mettre à jour si ce message est plus récent
-          const existing = visitorMap.get(email)
+          const existing = visitorMap.get(normalizedEmail)
           const msgTime = new Date(msg.createdAt).getTime()
           const existingTime = new Date(existing.lastMessageTime).getTime()
           

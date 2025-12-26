@@ -22,42 +22,59 @@ export async function GET(request: Request) {
 
     const prisma = getMainPrisma()
 
-    let where: any = {}
+    let messages: any[] = []
     
     if (visitorEmail) {
       // Messages d'un visiteur spécifique (par email)
-      // Récupérer tous les messages généraux puis filtrer par email dans le metadata
-      where.isGeneral = true
-      where.metadata = {
-        contains: visitorEmail // Recherche simple dans le JSON
-      }
-    } else if (companyId) {
-      // Messages d'une entreprise spécifique
-      where.companyId = companyId
-      where.isGeneral = false
-    } else if (general) {
-      // Messages généraux (page d'accueil) - tous les visiteurs
-      where.isGeneral = true
+      // Récupérer TOUS les messages généraux (visiteur ET admin) sans filtre userId
+      // pour inclure les réponses de l'admin qui ont le même metadata
+      messages = await prisma.chatbotMessage.findMany({
+        where: {
+          isGeneral: true,
+          // Pas de filtre userId pour inclure les messages de l'admin
+        },
+        orderBy: { createdAt: 'asc' },
+        take: 200,
+      })
     } else {
-      // Par défaut, messages généraux
-      where.isGeneral = true
-    }
+      let where: any = {}
+      
+      if (companyId) {
+        // Messages d'une entreprise spécifique
+        where.companyId = companyId
+        where.isGeneral = false
+        // Ne pas filtrer par userId pour inclure les réponses de l'admin
+      } else if (general) {
+        // Messages généraux (page d'accueil) - tous les visiteurs
+        // Exclure les messages des clients connectés (userId non null) mais inclure les réponses de l'admin
+        where.isGeneral = true
+        where.userId = null // Seulement pour la vue générale, pas pour un visiteur spécifique
+      } else {
+        // Par défaut, messages généraux
+        where.isGeneral = true
+        where.userId = null // Seulement pour la vue générale
+      }
 
-    let messages = await prisma.chatbotMessage.findMany({
-      where,
-      orderBy: { createdAt: 'asc' },
-      take: 200, // Prendre plus pour filtrer ensuite
-    })
+      messages = await prisma.chatbotMessage.findMany({
+        where,
+        orderBy: { createdAt: 'asc' },
+        take: 200,
+      })
+    }
 
     // Filtrer par email si visitorEmail est spécifié (pour une recherche plus précise dans le JSON)
     if (visitorEmail) {
+      const normalizedEmail = visitorEmail.toLowerCase().trim()
       messages = messages.filter(msg => {
         if (!msg.metadata) return false
         try {
           const metadata = JSON.parse(msg.metadata)
-          return metadata.email === visitorEmail
+          // Normaliser l'email du metadata pour la comparaison
+          const metadataEmail = metadata.email ? metadata.email.toLowerCase().trim() : null
+          return metadataEmail === normalizedEmail
         } catch {
-          return msg.metadata.includes(visitorEmail)
+          // Si le parsing échoue, faire une recherche simple dans la chaîne
+          return msg.metadata.toLowerCase().includes(normalizedEmail)
         }
       })
     }

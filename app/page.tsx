@@ -5,8 +5,6 @@ import { canUserAccess } from '@/lib/trial-checker'
 import Dashboard from '@/components/Dashboard'
 import TrialBlocked from '@/components/TrialBlocked'
 import TrialWelcome from '@/components/TrialWelcome'
-import UpdateNewsModal from '@/components/UpdateNewsModal'
-import HelpRequestWidget from '@/components/HelpRequestWidget'
 
 // Optimisation: Permettre le cache avec revalidation pour les données non sensibles
 export const revalidate = 30
@@ -27,7 +25,8 @@ export default async function Home() {
   }
   
   // Vérifier l'accès (abonnement ou essai)
-  const access = await canUserAccess(user.id)
+  // Les admins sont exemptés
+  const access = await canUserAccess(user.id, user.role)
   
   // Si l'essai est expiré et pas d'abonnement, bloquer l'accès
   if (!access.canAccess && access.reason === 'expired') {
@@ -41,10 +40,8 @@ export default async function Home() {
 
   return (
     <>
-      <UpdateNewsModal />
       <TrialWelcome />
       <Dashboard />
-      {user.role !== 'admin' && <HelpRequestWidget />}
     </>
   )
 }

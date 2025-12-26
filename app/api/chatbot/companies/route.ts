@@ -18,10 +18,13 @@ export async function GET() {
     const prisma = getMainPrisma()
 
     // Récupérer toutes les entreprises qui ont des messages de demande d'aide
+    // Inclure les messages des entreprises (companyId non null, isGeneral = false)
+    // Inclure les messages des utilisateurs connectés (userId non null) ET les réponses de l'admin
     const companiesWithMessages = await prisma.chatbotMessage.findMany({
       where: {
         isGeneral: false,
         companyId: { not: null },
+        // Ne pas filtrer par userId pour inclure les messages des utilisateurs ET les réponses de l'admin
       },
       select: {
         companyId: true,

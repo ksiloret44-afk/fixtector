@@ -23,9 +23,11 @@ import {
   ChevronDown,
   Star,
   MessageSquare,
+  CreditCard,
 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import TrialCountdown from './TrialCountdown'
+import ChatbotNotification from './ChatbotNotification'
 
 export default function Navigation() {
   const pathname = usePathname()
@@ -72,6 +74,7 @@ export default function Navigation() {
   
       const subMenuItems = [
         { href: '/profile', label: 'Profil', icon: User },
+        { href: '/subscription', label: 'Abonnement', icon: CreditCard },
         { href: '/team', label: 'Collaborateurs', icon: UserCog },
         { href: '/reviews', label: 'Avis clients', icon: Star },
         { href: '/company-review', label: 'Laisser un avis', icon: Star, hideForAdmin: true },
@@ -100,8 +103,10 @@ export default function Navigation() {
   }
 
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow-lg">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <>
+      <ChatbotNotification />
+      <nav className="bg-white dark:bg-gray-800 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
               <div className="flex-shrink-0 flex items-center space-x-4">
                 {!isAdmin && <TrialCountdown />}
@@ -173,7 +178,10 @@ export default function Navigation() {
           </div>
           <div className="hidden sm:flex sm:items-center sm:space-x-4 sm:flex-shrink-0">
             <button
-              onClick={() => signOut({ callbackUrl: '/landing' })}
+              onClick={() => {
+                const currentOrigin = typeof window !== 'undefined' ? window.location.origin : ''
+                signOut({ callbackUrl: `${currentOrigin}/landing` })
+              }}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
               <LogOut className="w-4 h-4 mr-2" />
@@ -244,7 +252,8 @@ export default function Navigation() {
             )}
             <button
               onClick={() => {
-                signOut({ callbackUrl: '/landing' })
+                const currentOrigin = typeof window !== 'undefined' ? window.location.origin : ''
+                signOut({ callbackUrl: `${currentOrigin}/landing` })
                 setMobileMenuOpen(false)
               }}
               className="flex items-center w-full pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-800 dark:hover:text-gray-200"
@@ -256,6 +265,7 @@ export default function Navigation() {
         </div>
       )}
     </nav>
+    </>
   )
 }
 

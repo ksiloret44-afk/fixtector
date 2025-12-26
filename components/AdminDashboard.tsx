@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Shield, Users, UserCheck, Clock } from 'lucide-react'
 import UserManagement from './UserManagement'
 import CacheCleaner from './CacheCleaner'
+import DataReset from './DataReset'
 
 interface Stats {
   totalUsers: number
@@ -116,6 +117,12 @@ export default function AdminDashboard() {
 
       {/* Gestion des utilisateurs */}
       <UserManagement />
+
+      {/* Remise à zéro des données */}
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">🗑️ Remise à zéro des données</h2>
+        <DataReset />
+      </div>
     </div>
   )
 }

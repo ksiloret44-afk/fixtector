@@ -3,11 +3,8 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getUserPrisma } from '@/lib/db-manager'
 import Navigation from '@/components/Navigation'
-import { FileText, CheckCircle, XCircle, Clock, DollarSign } from 'lucide-react'
-import { format } from 'date-fns'
-import { fr } from 'date-fns/locale'
-import Link from 'next/link'
-import InvoiceActionsMenu from '@/components/InvoiceActionsMenu'
+import { FileText, CheckCircle, XCircle, Clock } from 'lucide-react'
+import InvoicesListEnhanced from '@/components/InvoicesListEnhanced'
 
 // Permettre le cache avec revalidation toutes les 10 secondes
 // Les données sensibles (paiements) nécessitent un rafraîchissement fréquent
@@ -31,21 +28,9 @@ export default async function InvoicesPage({
     redirect('/')
   }
 
-  const statusFilter = searchParams.status || 'all'
-
-  const where: any = {}
-  if (statusFilter === 'unpaid') {
-    where.paymentStatus = 'unpaid'
-  } else if (statusFilter === 'paid') {
-    where.paymentStatus = 'paid'
-  } else if (statusFilter === 'partial') {
-    where.paymentStatus = 'partial'
-  }
-
-  // Optimisation: Limiter le nombre de résultats et utiliser select spécifique
+  // Récupérer toutes les factures (le composant client gère le filtrage)
   const invoices = await companyPrisma.invoice.findMany({
-    where,
-    take: 100, // Limiter à 100 factures par page (ajouter pagination si nécessaire)
+    take: 500, // Augmenter la limite pour permettre plus de factures
     select: {
       id: true,
       invoiceNumber: true,
@@ -72,6 +57,13 @@ export default async function InvoicesPage({
     },
     orderBy: { createdAt: 'desc' },
   })
+
+  // Convertir les dates en strings pour le composant client
+  const invoicesWithStringDates = invoices.map(invoice => ({
+    ...invoice,
+    createdAt: invoice.createdAt.toISOString(),
+    repair: invoice.repair || null,
+  }))
 
   // Calculer les statistiques
   const [
@@ -105,23 +97,6 @@ export default async function InvoicesPage({
     paidAmount: totalPaidAmount._sum.finalAmount || 0,
   }
 
-  const getPaymentStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; icon: any; className: string }> = {
-      paid: { label: 'Payée', icon: CheckCircle, className: 'bg-green-100 text-green-800' },
-      unpaid: { label: 'Impayée', icon: XCircle, className: 'bg-red-100 text-red-800' },
-      partial: { label: 'Partielle', icon: Clock, className: 'bg-yellow-100 text-yellow-800' },
-    }
-
-    const statusInfo = statusMap[status] || { label: status, icon: FileText, className: 'bg-gray-100 text-gray-800' }
-    const Icon = statusInfo.icon
-
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusInfo.className}`}>
-        <Icon className="h-3 w-3 mr-1" />
-        {statusInfo.label}
-      </span>
-    )
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -201,112 +176,10 @@ export default async function InvoicesPage({
             </div>
           </div>
 
-          {/* Filtres */}
-          <div className="mb-4 flex space-x-2">
-            <Link
-              href="/invoices"
-              className={`px-3 py-1 rounded-md text-sm font-medium ${
-                statusFilter === 'all'
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
-              }`}
-            >
-              Toutes
-            </Link>
-            <Link
-              href="/invoices?status=unpaid"
-              className={`px-3 py-1 rounded-md text-sm font-medium ${
-                statusFilter === 'unpaid'
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
-              }`}
-            >
-              En attente
-            </Link>
-            <Link
-              href="/invoices?status=paid"
-              className={`px-3 py-1 rounded-md text-sm font-medium ${
-                statusFilter === 'paid'
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
-              }`}
-            >
-              Payées
-            </Link>
-            <Link
-              href="/invoices?status=partial"
-              className={`px-3 py-1 rounded-md text-sm font-medium ${
-                statusFilter === 'partial'
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
-              }`}
-            >
-              Partielles
-            </Link>
-          </div>
-
-          {invoices.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-12 text-center">
-              <FileText className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Aucune facture</h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                {statusFilter === 'all'
-                  ? 'Les factures apparaîtront ici une fois créées.'
-                  : 'Aucune facture trouvée avec ce filtre.'}
-              </p>
-            </div>
-          ) : (
-            <div className="bg-white dark:bg-gray-800 shadow overflow-visible sm:rounded-md">
-              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                {invoices.map((invoice) => (
-                  <li key={invoice.id}>
-                    <div className="px-4 py-4 sm:px-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <Link href={`/invoices/${invoice.id}`} className="flex items-center flex-1">
-                          <div className="flex-shrink-0">
-                            <FileText className="h-8 w-8 text-primary-600" />
-                          </div>
-                          <div className="ml-4 flex-1">
-                            <div className="flex items-center">
-                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {invoice.customer.firstName} {invoice.customer.lastName}
-                              </p>
-                              {getPaymentStatusBadge(invoice.paymentStatus)}
-                            </div>
-                            <div className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400">
-                              {invoice.repair && (
-                                <>
-                                  <span>{invoice.repair.deviceType} - {invoice.repair.brand} {invoice.repair.model}</span>
-                                  <span className="mx-2">•</span>
-                                </>
-                              )}
-                              <span>Facture #{invoice.invoiceNumber.slice(0, 8)}</span>
-                              <span className="mx-2">•</span>
-                              <span>Créée le {format(new Date(invoice.createdAt), 'dd MMM yyyy', { locale: fr })}</span>
-                            </div>
-                          </div>
-                        </Link>
-                        <div className="ml-4 flex items-center space-x-4">
-                            <div className="text-right">
-                              <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                {invoice.finalAmount.toFixed(2)} € TTC
-                              </p>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                HT: {invoice.totalCost.toFixed(2)} €
-                              </p>
-                            </div>
-                          <InvoiceActionsMenu
-                            invoiceId={invoice.id}
-                            paymentStatus={invoice.paymentStatus}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <InvoicesListEnhanced 
+            initialInvoices={invoicesWithStringDates}
+            initialStats={stats}
+          />
         </div>
       </main>
     </div>

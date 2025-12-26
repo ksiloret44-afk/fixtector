@@ -16,7 +16,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
-import { DollarSign, Wrench, Users, TrendingUp, Download } from 'lucide-react'
+import { DollarSign, Wrench, Users, TrendingUp, Download, UserCog } from 'lucide-react'
 
 interface ReportData {
   revenue: {
@@ -41,15 +41,34 @@ interface ReportData {
   topCustomers: Array<{ name: string; revenue: number }>
 }
 
+interface TeamStats {
+  period: string
+  startDate: string
+  endDate: string
+  teamStats: Array<{
+    userId: string
+    name: string
+    email: string
+    totalRepairs: number
+    completedRepairs: number
+    pendingRepairs: number
+    inProgressRepairs: number
+    revenue: number
+    completedWithPayment: number
+  }>
+}
+
 const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']
 
 export default function ReportsDashboard() {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<ReportData | null>(null)
+  const [teamData, setTeamData] = useState<TeamStats | null>(null)
   const [period, setPeriod] = useState<'week' | 'month' | 'year'>('month')
 
   useEffect(() => {
     fetchReports()
+    fetchTeamReports()
   }, [period])
 
   const fetchReports = async () => {
@@ -73,6 +92,20 @@ export default function ReportsDashboard() {
       setData(null)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchTeamReports = async () => {
+    try {
+      const response = await fetch(`/api/reports/team?period=${period}`)
+      if (!response.ok) {
+        throw new Error('Erreur lors du chargement des rapports par collaborateur')
+      }
+      const teamReportData = await response.json()
+      setTeamData(teamReportData)
+    } catch (err) {
+      console.error('Erreur lors du chargement des rapports par collaborateur:', err)
+      setTeamData(null)
     }
   }
 
@@ -326,6 +359,118 @@ export default function ReportsDashboard() {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* Rapport par collaborateur */}
+      {teamData && teamData.teamStats.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0 bg-indigo-100 dark:bg-indigo-900/30 rounded-md p-3">
+                <UserCog className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                  Rapport par collaborateur
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Statistiques de vente et réparation pour chaque membre de l'équipe
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Collaborateur
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Total réparations
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Terminées
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    En cours
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    En attente
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Chiffre d'affaires
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Taux de complétion
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {teamData.teamStats.map((member) => (
+                  <tr key={member.userId} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {member.name}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {member.email}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                      {member.totalRepairs}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 dark:text-green-400">
+                      {member.completedRepairs}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 dark:text-blue-400">
+                      {member.inProgressRepairs}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-yellow-600 dark:text-yellow-400">
+                      {member.pendingRepairs}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {member.revenue.toFixed(2)} €
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                      {member.totalRepairs > 0
+                        ? ((member.completedRepairs / member.totalRepairs) * 100).toFixed(1)
+                        : 0}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Graphique en barres pour le chiffre d'affaires par collaborateur */}
+          <div className="mt-6">
+            <h4 className="text-md font-medium text-gray-900 dark:text-gray-100 mb-4">
+              Chiffre d'affaires par collaborateur
+            </h4>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={teamData.teamStats}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="name" 
+                  angle={-45} 
+                  textAnchor="end" 
+                  height={100}
+                  interval={0}
+                />
+                <YAxis />
+                <Tooltip 
+                  formatter={(value: number | undefined) => value ? `${value.toFixed(2)} €` : '0.00 €'}
+                />
+                <Legend />
+                <Bar dataKey="revenue" fill="#4F46E5" name="Chiffre d'affaires (€)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

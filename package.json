@@ -1,6 +1,6 @@
 {
   "name": "fixtector-test",
-  "version": "2.0.0",
+  "version": "2.2.5",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3001",
@@ -39,6 +39,7 @@
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.49.2",
     "recharts": "^3.6.0",
+    "stripe": "^14.21.0",
     "twilio": "^5.3.5",
     "xmlbuilder2": "^4.0.3",
     "zod": "^3.22.4"

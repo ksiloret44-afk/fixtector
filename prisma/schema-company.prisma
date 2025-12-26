@@ -316,11 +316,19 @@ model Review {
   reviewToken String   @unique // Token unique pour accéder à la page d'avis
   submittedAt DateTime? // Date de soumission
   
+  // Modération des avis
+  isApproved  Boolean? // null = en attente, true = approuvé, false = rejeté
+  approvedAt  DateTime?
+  approvedBy  String?  // ID de l'utilisateur qui a approuvé/rejeté
+  rejectedAt  DateTime?
+  rejectedBy  String?  // ID de l'utilisateur qui a rejeté
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
   @@index([customerId])
   @@index([repairId])
   @@index([reviewToken])
+  @@index([isApproved])
 }
 

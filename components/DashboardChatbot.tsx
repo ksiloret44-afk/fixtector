@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { MessageSquare, X, Send, Bot, User } from 'lucide-react'
 
 interface Message {
@@ -21,14 +21,43 @@ export default function DashboardChatbot() {
     scrollToBottom()
   }, [messages])
 
-  // Réinitialiser les messages quand on ferme le chatbot
-  useEffect(() => {
-    if (!isOpen) {
-      setMessages([])
-      setInput('')
-      setLoading(false)
+  const fetchMessages = useCallback(async () => {
+    try {
+      const response = await fetch('/api/chatbot/client')
+      const data = await response.json()
+      if (response.ok && data.messages) {
+        // Convertir les messages au format attendu
+        const formattedMessages: Message[] = data.messages.map((msg: any) => ({
+          id: msg.id,
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+          timestamp: new Date(msg.createdAt),
+        }))
+        setMessages(formattedMessages)
+      }
+    } catch (err) {
+      console.error('Erreur lors du chargement des messages:', err)
     }
-  }, [isOpen])
+  }, [])
+
+  // Charger les messages de l'utilisateur quand le chatbot s'ouvre
+  useEffect(() => {
+    if (isOpen) {
+      fetchMessages()
+    }
+    // Ne pas réinitialiser les messages quand on ferme - ils persistent
+  }, [isOpen, fetchMessages])
+
+  // Polling pour récupérer les nouveaux messages toutes les 3 secondes
+  useEffect(() => {
+    if (!isOpen) return
+
+    const interval = setInterval(() => {
+      fetchMessages()
+    }, 3000)
+
+    return () => clearInterval(interval)
+  }, [isOpen, fetchMessages])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -50,25 +79,21 @@ export default function DashboardChatbot() {
     setLoading(true)
 
     try {
-      const response = await fetch('/api/chatbot/chat', {
+      const response = await fetch('/api/chatbot/client', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: userMessage.content,
-          general: true,
         }),
       })
 
       const data = await response.json()
 
       if (response.ok) {
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: data.response || 'Désolé, je n\'ai pas pu traiter votre demande.',
-          timestamp: new Date(),
-        }
-        setMessages((prev) => [...prev, assistantMessage])
+        // Recharger les messages depuis le serveur pour avoir les IDs corrects et les réponses de l'admin
+        setTimeout(() => {
+          fetchMessages()
+        }, 500)
       } else {
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
@@ -96,8 +121,9 @@ export default function DashboardChatbot() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 bg-primary-600 text-white p-4 rounded-full shadow-lg hover:bg-primary-700 transition-colors z-50"
-        title="Ouvrir le chatbot"
+        className="fixed bottom-6 right-6 bg-primary-600 text-white p-4 rounded-full shadow-lg hover:bg-primary-700 transition-colors z-[9999]"
+        title="Demander de l'aide"
+        aria-label="Ouvrir le chatbot"
       >
         <MessageSquare className="h-6 w-6" />
       </button>
@@ -105,7 +131,7 @@ export default function DashboardChatbot() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 flex flex-col">
+    <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-[9999] flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-primary-600 text-white rounded-t-lg">
         <div className="flex items-center">
@@ -113,7 +139,15 @@ export default function DashboardChatbot() {
           <h3 className="text-lg font-semibold">Chatbot FixTector</h3>
         </div>
         <button
-          onClick={() => setIsOpen(false)}
+          onClick={() => {
+            if (messages.length > 0) {
+              if (confirm('Voulez-vous vraiment fermer le chatbot ? Les messages seront conservés.')) {
+                setIsOpen(false)
+              }
+            } else {
+              setIsOpen(false)
+            }
+          }}
           className="text-white hover:text-gray-200 transition-colors"
         >
           <X className="h-5 w-5" />
@@ -123,9 +157,10 @@ export default function DashboardChatbot() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
-          <div className="text-center text-gray-500 mt-8">
+          <div className="text-center text-gray-500 dark:text-gray-400 mt-8">
             <Bot className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-sm">Bonjour ! Comment puis-je vous aider ?</p>
+            <p className="text-sm font-medium">Bonjour !</p>
+            <p className="text-sm mt-2">Posez vos questions, un administrateur vous répondra bientôt.</p>
           </div>
         ) : (
           messages.map((message) => (
