@@ -113,9 +113,14 @@ if (Test-Path "prisma") {
 }
 
 # Vérifier le build
-if (-not (Test-Path ".next")) {
-    Write-Info "Build introuvable. Compilation en cours..."
+if (-not (Test-Path ".next") -or -not (Test-Path ".next\BUILD_ID")) {
+    Write-Info "Build introuvable ou incomplet. Compilation en cours..."
     npm run build
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Erreur lors du build. Vérifiez les logs ci-dessus."
+        exit 1
+    }
+    Write-Success "Build terminé avec succès"
 }
 
 # Arrêter les processus existants sur le port
