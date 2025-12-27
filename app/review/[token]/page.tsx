@@ -7,7 +7,7 @@ import { useParams, useRouter } from 'next/navigation'
 export default function ReviewPage() {
   const params = useParams()
   const router = useRouter()
-  const token = params.token as string
+  const token = params?.token as string | undefined
   
   const [repair, setRepair] = useState<any>(null)
   const [rating, setRating] = useState(0)
@@ -43,6 +43,11 @@ export default function ReviewPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    
+    if (!token) {
+      setError('Token manquant')
+      return
+    }
     
     if (rating === 0) {
       setError('Veuillez donner une note en étoiles')
