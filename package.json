@@ -26,7 +26,8 @@
     "mobile:sync": "npx cap sync android",
     "mobile:open": "npx cap open android",
     "mobile:build": "powershell -ExecutionPolicy Bypass -File ./scripts/generate-apk.ps1",
-    "mobile:build:static": "cross-env MOBILE_BUILD=true npm run build"
+    "mobile:build:static": "cross-env MOBILE_BUILD=true npm run build",
+    "mobile:deploy": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy-mobile-server.ps1"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",
