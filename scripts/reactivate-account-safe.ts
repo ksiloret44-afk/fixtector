@@ -9,20 +9,20 @@ async function main() {
   try {
     const email = 'rpphone@ik.me'
     
-    // Chercher l'utilisateur (sans le champ suspended si il n'existe pas encore)
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        password: true,
-        role: true,
-        approved: true,
-        suspended: true,
-        mustChangePassword: true,
+    // Chercher l'utilisateur avec seulement les champs de base
+    let user: any = null
+    try {
+      user = await prisma.user.findUnique({
+        where: { email }
+      })
+    } catch (error: any) {
+      if (error.message?.includes('does not exist') || error.code === 'P2021') {
+        console.log('⚠️  Les tables de la base de données ne sont pas encore créées.')
+        console.log('   Exécutez "npm run db:push" pour créer les tables.')
+        process.exit(1)
       }
-    })
+      throw error
+    }
 
     if (!user) {
       console.error(`❌ Aucun utilisateur trouvé avec l'email: ${email}`)
@@ -32,16 +32,25 @@ async function main() {
       const defaultPassword = 'admin123'
       const hashedPassword = await bcrypt.hash(defaultPassword, 10)
       
+      const createData: any = {
+        email,
+        name: 'Administrateur',
+        password: hashedPassword,
+        role: 'admin',
+        approved: true,
+        mustChangePassword: true,
+      }
+      
+      // Ajouter suspended seulement si la colonne existe
+      try {
+        // Tester si suspended existe en vérifiant le schéma
+        createData.suspended = false
+      } catch (e) {
+        // Ignorer si la colonne n'existe pas
+      }
+      
       const newUser = await prisma.user.create({
-        data: {
-          email,
-          name: 'Administrateur',
-          password: hashedPassword,
-          role: 'admin',
-          approved: true,
-          suspended: false,
-          mustChangePassword: true,
-        }
+        data: createData
       })
       
       console.log('✅ Compte créé avec succès!')
@@ -57,7 +66,9 @@ async function main() {
     console.log(`   Nom: ${user.name}`)
     console.log(`   Rôle: ${user.role}`)
     console.log(`   Approuvé: ${user.approved ? '✅ Oui' : '❌ Non'}`)
-    console.log(`   Suspendu: ${user.suspended ? '❌ Oui' : '✅ Non'}`)
+    if (user.suspended !== undefined) {
+      console.log(`   Suspendu: ${user.suspended ? '❌ Oui' : '✅ Non'}`)
+    }
 
     // Réactiver le compte
     const updateData: any = {
@@ -65,12 +76,9 @@ async function main() {
       mustChangePassword: false,
     }
     
-    // Ajouter suspended seulement si la colonne existe
-    try {
-      // Vérifier si la colonne suspended existe en essayant de la mettre à jour
+    // Ajouter suspended seulement si la colonne existe dans le schéma
+    if (user.suspended !== undefined) {
       updateData.suspended = false
-    } catch (e) {
-      // Si la colonne n'existe pas, on l'ignore
     }
     
     const updatedUser = await prisma.user.update({
@@ -81,7 +89,9 @@ async function main() {
     console.log('\n✅ Compte réactivé avec succès!')
     console.log(`   Email: ${updatedUser.email}`)
     console.log(`   Approuvé: ${updatedUser.approved ? '✅ Oui' : '❌ Non'}`)
-    console.log(`   Suspendu: ${updatedUser.suspended ? '❌ Oui' : '✅ Non'}`)
+    if (updatedUser.suspended !== undefined) {
+      console.log(`   Suspendu: ${updatedUser.suspended ? '❌ Oui' : '✅ Non'}`)
+    }
     console.log('\n💡 Vous pouvez maintenant vous connecter avec votre mot de passe.')
     
     // Option pour réinitialiser le mot de passe
@@ -93,6 +103,13 @@ async function main() {
     if (error.code === 'P2021' || error.message?.includes('does not exist')) {
       console.log('\n⚠️  Les tables de la base de données ne sont pas encore créées.')
       console.log('   Exécutez "npm run db:push" pour créer les tables.')
+      console.log('\n📝 Commandes à exécuter:')
+      console.log('   1. npm run db:push')
+      console.log('   2. npm run db:generate')
+      console.log('   3. npm run reactivate-account')
+    } else if (error.message?.includes('suspended')) {
+      console.log('\n⚠️  La colonne "suspended" n\'existe pas dans votre base de données.')
+      console.log('   Exécutez "npm run db:push" pour mettre à jour le schéma.')
     }
     process.exit(1)
   }
