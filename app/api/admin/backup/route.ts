@@ -5,7 +5,7 @@ import { getMainPrisma } from '@/lib/db-manager'
 import path from 'path'
 import fs from 'fs'
 import { execSync } from 'child_process'
-const archiver = require('archiver')
+import archiver from 'archiver'
 
 const ABSOLUTE_ADMIN_EMAIL = 'rpphone@ik.me'
 

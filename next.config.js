@@ -34,6 +34,7 @@ const nextConfig = {
   experimental: {
     // optimizeCss: true, // Désactivé temporairement - cause des problèmes avec PostCSS/Tailwind
     optimizePackageImports: ['lucide-react', 'date-fns'], // Tree-shaking amélioré
+    serverComponentsExternalPackages: ['archiver', 'bcryptjs', 'jspdf', 'jspdf-autotable'], // Externaliser les packages problématiques
   },
   
   webpack: (config, { isServer, dev }) => {

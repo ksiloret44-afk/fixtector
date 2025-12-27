@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getUserPrisma, getMainPrisma } from '@/lib/db-manager'
 import { generateInvoicePDF } from '@/lib/pdf-export'
-const archiver = require('archiver')
+import archiver from 'archiver'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
