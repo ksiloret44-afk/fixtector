@@ -12,20 +12,32 @@ if (typeof global !== 'undefined' && typeof global.self === 'undefined') {
   global.self = global
 }
 
+// Configuration pour mobile (export statique) ou web (serveur)
+const isMobileBuild = process.env.MOBILE_BUILD === 'true'
+
 const nextConfig = {
   reactStrictMode: true,
+  
+  // Configuration conditionnelle pour mobile
+  ...(isMobileBuild ? {
+    output: 'export',
+    trailingSlash: true,
+    images: {
+      unoptimized: true,
+    },
+  } : {
+    // Configuration normale pour le web
+    images: {
+      formats: ['image/avif', 'image/webp'],
+      deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+      imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+      minimumCacheTTL: 60,
+    },
+  }),
   
   // Optimisations de performance
   compress: true, // Activer la compression Gzip/Brotli
   poweredByHeader: false, // Retirer le header X-Powered-By pour la sécurité et performance
-  
-  // Optimisation des images
-  images: {
-    formats: ['image/avif', 'image/webp'],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    minimumCacheTTL: 60,
-  },
   
   // Optimisation du build
   swcMinify: true, // Utiliser SWC pour la minification (plus rapide que Terser)

@@ -21,7 +21,12 @@
     "clean:cache": "tsx scripts/clean-cache.ts",
     "clean:cache:all": "tsx scripts/clean-cache.ts --force",
     "security:check": "npx tsx scripts/security-check.ts",
-    "security:fix": "npm audit fix"
+    "security:fix": "npm audit fix",
+    "mobile:init": "npx cap add android",
+    "mobile:sync": "npx cap sync android",
+    "mobile:open": "npx cap open android",
+    "mobile:build": "powershell -ExecutionPolicy Bypass -File ./scripts/generate-apk.ps1",
+    "mobile:build:static": "cross-env MOBILE_BUILD=true npm run build"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",
