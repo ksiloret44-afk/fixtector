@@ -1,0 +1,87 @@
+import { getMainPrisma } from '../lib/db-manager'
+import bcrypt from 'bcryptjs'
+
+async function main() {
+  console.log('=== Réactivation du compte rpphone@ik.me ===\n')
+
+  const prisma = getMainPrisma()
+
+  try {
+    const email = 'rpphone@ik.me'
+    
+    // Chercher l'utilisateur
+    const user = await prisma.user.findUnique({
+      where: { email }
+    })
+
+    if (!user) {
+      console.error(`❌ Aucun utilisateur trouvé avec l'email: ${email}`)
+      console.log('\n💡 Création du compte...')
+      
+      // Créer le compte s'il n'existe pas
+      const defaultPassword = 'admin123'
+      const hashedPassword = await bcrypt.hash(defaultPassword, 10)
+      
+      const newUser = await prisma.user.create({
+        data: {
+          email,
+          name: 'Administrateur',
+          password: hashedPassword,
+          role: 'admin',
+          approved: true,
+          suspended: false,
+          mustChangePassword: true,
+        }
+      })
+      
+      console.log('✅ Compte créé avec succès!')
+      console.log(`   Email: ${newUser.email}`)
+      console.log(`   Mot de passe par défaut: ${defaultPassword}`)
+      console.log(`   ⚠️  Changez ce mot de passe après la première connexion!`)
+      return
+    }
+
+    // Afficher l'état actuel
+    console.log(`📋 État actuel du compte:`)
+    console.log(`   Email: ${user.email}`)
+    console.log(`   Nom: ${user.name}`)
+    console.log(`   Rôle: ${user.role}`)
+    console.log(`   Approuvé: ${user.approved ? '✅ Oui' : '❌ Non'}`)
+    console.log(`   Suspendu: ${user.suspended ? '❌ Oui' : '✅ Non'}`)
+
+    // Réactiver le compte
+    const updatedUser = await prisma.user.update({
+      where: { email },
+      data: {
+        approved: true,
+        suspended: false,
+        mustChangePassword: false,
+      }
+    })
+
+    console.log('\n✅ Compte réactivé avec succès!')
+    console.log(`   Email: ${updatedUser.email}`)
+    console.log(`   Approuvé: ${updatedUser.approved ? '✅ Oui' : '❌ Non'}`)
+    console.log(`   Suspendu: ${updatedUser.suspended ? '❌ Oui' : '✅ Non'}`)
+    console.log('\n💡 Vous pouvez maintenant vous connecter avec votre mot de passe.')
+    
+    // Option pour réinitialiser le mot de passe
+    console.log('\n💡 Si vous avez oublié votre mot de passe, utilisez:')
+    console.log('   npm run reset-password')
+    
+  } catch (error: any) {
+    console.error('❌ Erreur:', error.message)
+    if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+      console.log('\n⚠️  Les tables de la base de données ne sont pas encore créées.')
+      console.log('   Exécutez "npm run db:push" pour créer les tables.')
+    }
+    process.exit(1)
+  }
+}
+
+main()
+  .catch((e) => {
+    console.error(e)
+    process.exit(1)
+  })
+
