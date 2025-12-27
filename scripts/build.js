@@ -11,26 +11,36 @@ if (typeof global !== 'undefined') {
 // Maintenant, exécuter le build Next.js
 const { execSync } = require('child_process')
 const path = require('path')
+const fs = require('fs')
 
 try {
   console.log('Building Next.js application...')
   
   // Construire NODE_OPTIONS avec le polyfill
+  // IMPORTANT: Ignorer NODE_OPTIONS existant s'il pointe vers un répertoire ou est incorrect
   const preBuildPath = path.resolve(__dirname, 'pre-build.js')
-  const nodeOptions = [
-    process.env.NODE_OPTIONS || '',
-    '--require',
-    preBuildPath
-  ].filter(Boolean).join(' ')
+  
+  // Vérifier que pre-build.js existe
+  if (!fs.existsSync(preBuildPath)) {
+    console.error(`ERROR: pre-build.js not found at ${preBuildPath}`)
+    process.exit(1)
+  }
+  
+  // Construire NODE_OPTIONS en ignorant une valeur existante incorrecte
+  // On utilise uniquement notre polyfill (ignore NODE_OPTIONS global qui peut être incorrect)
+  const nodeOptions = `--require ${preBuildPath}`
   
   try {
+    // Créer un environnement propre en supprimant NODE_OPTIONS existant
+    // pour éviter les conflits avec des valeurs incorrectes définies globalement
+    const cleanEnv = { ...process.env }
+    delete cleanEnv.NODE_OPTIONS  // Supprimer NODE_OPTIONS existant
+    cleanEnv.NODE_OPTIONS = nodeOptions  // Utiliser uniquement notre valeur
+    
     execSync('next build', {
       stdio: 'inherit',
       cwd: path.resolve(__dirname, '..'),
-      env: {
-        ...process.env,
-        NODE_OPTIONS: nodeOptions
-      }
+      env: cleanEnv
     })
   } catch (buildError) {
     // Ignorer l'erreur et vérifier si le build a quand même réussi
@@ -38,7 +48,6 @@ try {
   }
   
   // Vérifier que le build a réussi en vérifiant BUILD_ID
-  const fs = require('fs')
   const buildIdPath = path.resolve(__dirname, '..', '.next', 'BUILD_ID')
   
   // Attendre un peu pour que le BUILD_ID soit créé
@@ -61,7 +70,6 @@ try {
   }
 } catch (error) {
   // Vérifier si le build a quand même réussi malgré l'erreur
-  const fs = require('fs')
   const buildIdPath = path.resolve(__dirname, '..', '.next', 'BUILD_ID')
   
   // Attendre un peu pour que le BUILD_ID soit créé
