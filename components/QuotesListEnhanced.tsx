@@ -404,3 +404,4 @@ export default function QuotesListEnhanced({ initialQuotes, initialStats }: Quot
   )
 }
 
+

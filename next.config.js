@@ -37,7 +37,15 @@ const nextConfig = {
     // serverComponentsExternalPackages retiré - causait des problèmes avec webpack-runtime
   },
   
-  webpack: (config, { isServer, dev }) => {
+  webpack: (config, { isServer, dev, webpack }) => {
+    // Polyfill pour 'self' côté serveur
+    if (isServer) {
+      // S'assurer que 'self' est défini dans le contexte global avant le build
+      if (typeof global !== 'undefined' && typeof global.self === 'undefined') {
+        global.self = global
+      }
+    }
+    
     // Exclure les fichiers de script du build
     config.module.rules.push({
       test: /check-user\.ts$/,
@@ -81,36 +89,9 @@ const nextConfig = {
     }
     
     // Optimisations webpack en production
-    if (!dev) {
-      config.optimization = {
-        ...config.optimization,
-        moduleIds: 'deterministic',
-        runtimeChunk: 'single',
-        splitChunks: {
-          chunks: 'all',
-          cacheGroups: {
-            default: false,
-            vendors: false,
-            // Créer un chunk séparé pour les vendors
-            vendor: {
-              name: 'vendor',
-              chunks: 'all',
-              test: /node_modules/,
-              priority: 20,
-            },
-            // Créer un chunk séparé pour les composants communs
-            common: {
-              name: 'common',
-              minChunks: 2,
-              chunks: 'all',
-              priority: 10,
-              reuseExistingChunk: true,
-              enforce: true,
-            },
-          },
-        },
-      }
-    }
+    // Simplifié pour éviter les erreurs de runtime
+    // Retirer les optimisations personnalisées qui peuvent causer des problèmes
+    // Laisser Next.js gérer les optimisations par défaut
     
     return config
   },

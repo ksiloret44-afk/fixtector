@@ -8,3 +8,4 @@ if (typeof window !== 'undefined' && typeof window.self === 'undefined') {
   (window as any).self = window
 }
 
+
