@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth'
 import { getMainPrisma } from '@/lib/db-manager'
 import Stripe from 'stripe'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 // Récupérer la clé Stripe depuis la config en base ou les variables d'environnement
 async function getStripeInstance() {
   const mainPrisma = getMainPrisma()

@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 // Version actuelle de l'application (à mettre à jour à chaque release)
 const CURRENT_VERSION = '2.0.0'
 

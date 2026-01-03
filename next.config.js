@@ -13,7 +13,11 @@ if (typeof global !== 'undefined' && typeof global.self === 'undefined') {
 }
 
 // Configuration pour mobile (export statique) ou web (serveur)
-const isMobileBuild = process.env.MOBILE_BUILD === 'true'
+// IMPORTANT: On Vercel we must not use `output: 'export'` (static export),
+// otherwise Next.js will try to statically render `/api/*` routes and fail
+// with "Dynamic server usage" when routes use `headers()` / `request.url`.
+const isVercel = !!process.env.VERCEL
+const isMobileBuild = process.env.MOBILE_BUILD === 'true' && !isVercel
 
 const nextConfig = {
   reactStrictMode: true,
